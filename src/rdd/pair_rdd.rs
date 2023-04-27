@@ -73,8 +73,8 @@ pub trait PairRdd<K: Data + Eq + Hash, V: Data>: Rdd<Item = (K, V)> + Send + Syn
     {
         let create_combiner = Box::new(Fn!(|v: V| v));
         let f_clone = func.clone();
-        let merge_value = Box::new(Fn!(move |(buf, v)| { (f_clone)((buf, v)) }));
-        let merge_combiners = Box::new(Fn!(move |(b1, b2)| { (func)((b1, b2)) }));
+        let merge_value = Box::new(Fn!(move |(buf, v)| (f_clone)((buf, v))));
+        let merge_combiners = Box::new(Fn!(move |(b1, b2)| (func)((b1, b2))));
         let aggregator = Aggregator::new(create_combiner, merge_value, merge_combiners);
         self.combine_by_key(aggregator, partitioner)
     }

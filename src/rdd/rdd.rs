@@ -438,8 +438,7 @@ pub trait Rdd: RddBase + 'static {
         Self: Sized,
     {
         let context = self.get_context();
-        let counting_func =
-            Fn!(|iter: Box<dyn Iterator<Item = Self::Item>>| { iter.count() as u64 });
+        let counting_func = Fn!(|iter: Box<dyn Iterator<Item = Self::Item>>| iter.count() as u64);
         Ok(context
             .run_job(self.get_rdd(), counting_func)?
             .into_iter()
