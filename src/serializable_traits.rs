@@ -5,7 +5,6 @@ use std::{
     boxed, error, fmt, marker,
     ops::{self, Deref, DerefMut},
 };
-
 // Data passing through RDD needs to satisfy the following traits.
 // Debug is only added here for debugging convenience during development stage but is not necessary.
 // Sync is also not necessary I think. Have to look into it.
@@ -235,6 +234,7 @@ impl<T: fmt::Display + ?Sized> fmt::Display for Box<T> {
 impl<A, F: ?Sized> ops::FnOnce<A> for Box<F>
 where
     F: FnOnce<A>,
+    A: std::marker::Tuple,
 {
     type Output = F::Output;
     extern "rust-call" fn call_once(self, args: A) -> Self::Output {
@@ -245,6 +245,7 @@ where
 impl<A, F: ?Sized> ops::FnMut<A> for Box<F>
 where
     F: FnMut<A>,
+    A: std::marker::Tuple,
 {
     extern "rust-call" fn call_mut(&mut self, args: A) -> Self::Output {
         self.0.call_mut(args)
@@ -254,6 +255,7 @@ where
 impl<A, F: ?Sized> ops::Fn<A> for Box<F>
 where
     F: Func<A>,
+    A: std::marker::Tuple,
 {
     extern "rust-call" fn call(&self, args: A) -> Self::Output {
         self.0.call(args)
@@ -288,10 +290,13 @@ pub trait SerFunc<Args>:
     + 'static
     + Serialize
     + Deserialize
+where
+    Args: std::marker::Tuple,
 {
 }
 
-impl<Args, T> SerFunc<Args> for T where
+impl<Args, T> SerFunc<Args> for T
+where
     T: Fn<Args>
         + Send
         + Sync
@@ -300,17 +305,22 @@ impl<Args, T> SerFunc<Args> for T where
         + serde::de::DeserializeOwned
         + 'static
         + Serialize
-        + Deserialize
+        + Deserialize,
+    Args: std::marker::Tuple,
 {
 }
 
 pub trait Func<Args>:
     ops::Fn<Args> + Serialize + Deserialize + Send + Sync + 'static + dyn_clone::DynClone
+where
+    Args: std::marker::Tuple,
 {
 }
 
-impl<T: ?Sized, Args> Func<Args> for T where
-    T: ops::Fn<Args> + Serialize + Deserialize + Send + Sync + 'static + dyn_clone::DynClone
+impl<T: ?Sized, Args> Func<Args> for T
+where
+    T: ops::Fn<Args> + Serialize + Deserialize + Send + Sync + 'static + dyn_clone::DynClone,
+    Args: std::marker::Tuple,
 {
 }
 
