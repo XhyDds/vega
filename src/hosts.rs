@@ -15,6 +15,7 @@ pub(crate) struct Hosts {
     pub slaves: Vec<String>,
 }
 
+//hosts.conf文件格式参见更新后的手册（相关库：std::net::SocketAddr，toml::from_str）
 impl Hosts {
     pub fn get() -> Result<&'static Hosts> {
         HOSTS.get_or_try_init(Self::load)
@@ -30,11 +31,17 @@ impl Hosts {
             source: e,
             path: path.as_ref().into(),
         })?;
-
+        // //TEST
+        // println!("there1");
+        // let result=
         toml::from_str(&s).map_err(|e| Error::ParseHosts {
             source: e,
             path: path.as_ref().into(),
         })
+        // //TEST
+        // ;
+        // println!("there2");
+        // result
     }
 }
 

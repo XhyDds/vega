@@ -77,6 +77,7 @@ impl Env {
             let master_addr = Hosts::get()
                 .expect("fatal error: failed loading host file")
                 .master;
+            // println!("here2");
             let map_output_tracker = MapOutputTracker::new(conf.is_driver, master_addr);
             let shuffle_manager =
                 ShuffleManager::new().expect("fatal error: failed creating shuffle manager");
