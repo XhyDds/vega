@@ -220,8 +220,7 @@ impl Context {
         let binary_path = std::env::current_exe().map_err(|_| Error::CurrentBinaryPath)?;
         let binary_path_str = binary_path
             .to_str()
-            .ok_or_else(|| Error::PathToString(binary_path.clone()))?
-            .into();
+            .ok_or_else(|| Error::PathToString(binary_path.clone()))?;
         let binary_name = binary_path
             .file_name()
             .ok_or(Error::CurrentBinaryName)?
@@ -243,10 +242,11 @@ impl Context {
                 .parse()
                 .map_err(|x| Error::ParseHostAddress(format!("{}", x)))?;
             address_map.push(SocketAddrV4::new(address_ip, port));
-
+            let key_path="~/.ssh/vlab-vm6854.pem";
             // Create work dir:
+            println!("{}",job_work_dir_str);
             Command::new("ssh")
-                .args(&[address, "mkdir", &job_work_dir_str])
+                .args(&["-i",key_path,address, "mkdir", &job_work_dir_str])
                 .output()
                 .map_err(|e| Error::CommandOutput {
                     source: e,
@@ -254,10 +254,11 @@ impl Context {
                 })?;
 
             // Copy conf file to remote:
+            //创建worker_config
             Context::create_workers_config_file(address_ip, port, conf_path)?;
             let remote_path = format!("{}:{}/config.toml", address, job_work_dir_str);
             Command::new("scp")
-                .args(&[conf_path, &remote_path])
+                .args(&["-i",key_path,conf_path, &remote_path])
                 .output()
                 .map_err(|e| Error::CommandOutput {
                     source: e,
@@ -266,8 +267,10 @@ impl Context {
 
             // Copy binary:
             let remote_path = format!("{}:{}/{}", address, job_work_dir_str, binary_name);
+            println!("{}",binary_path_str);
+            println!("{}",remote_path);
             Command::new("scp")
-                .args(&[&binary_path_str, &remote_path])
+                .args(&[ "-i",key_path,&binary_path_str, &remote_path])
                 .output()
                 .map_err(|e| Error::CommandOutput {
                     source: e,
@@ -278,7 +281,7 @@ impl Context {
             let path = format!("{}/{}", job_work_dir_str, binary_name);
             log::debug!("remote path {}", path);
             Command::new("ssh")
-                .args(&[address, &path])
+                .args(&["-i",key_path,address, &path])
                 .spawn()
                 .map_err(|e| Error::CommandOutput {
                     source: e,

@@ -74,10 +74,12 @@ impl Env {
     fn new() -> Self {
         Env::run_in_async_rt(|| -> Self {
             let conf = Configuration::get();
+            //hosts.conf的设置，有关master/slave的设置
             let master_addr = Hosts::get()
                 .expect("fatal error: failed loading host file")
                 .master;
             // println!("here2");
+            //conf.is_driver: master/slaves
             let map_output_tracker = MapOutputTracker::new(conf.is_driver, master_addr);
             let shuffle_manager =
                 ShuffleManager::new().expect("fatal error: failed creating shuffle manager");
@@ -203,11 +205,13 @@ impl Default for Configuration {
             .from_env::<EnvConfig>()
             .unwrap();
 
+        //设置deployment_mode
         let deployment_mode = match config.deployment_mode {
             Some(Distributed) => Distributed,
             _ => Local,
         };
 
+        //设置local_dir
         let local_dir = if let Some(dir) = config.local_dir {
             PathBuf::from(dir)
         } else {
@@ -215,6 +219,7 @@ impl Default for Configuration {
         };
 
         // loggin config:
+        //设置log_level,log_cleanup
         let log_level = match config.log_level {
             Some(val) => val,
             _ => LogLevel::Info,
@@ -226,12 +231,15 @@ impl Default for Configuration {
         log::debug!("Setting max log level to: {:?}", log_level);
         log::set_max_level(log_level.into());
 
+        //设置local_ip
         let local_ip: Ipv4Addr = {
             if let Some(ip) = config.local_ip {
                 ip.parse().unwrap()
-            } else if deployment_mode == Distributed {
-                panic!("Local IP required while deploying in distributed mode.")
-            } else {
+            }
+            //  else if deployment_mode == Distributed {
+            //     panic!("Local IP required while deploying in distributed mode.")
+            // }
+            else {
                 Ipv4Addr::LOCALHOST
             }
         };
@@ -239,6 +247,7 @@ impl Default for Configuration {
         // master/slave config:
         let is_master;
         let slave: Option<SlaveConfig>;
+        //设置is_master,slave
         match config.slave_deployment {
             Some(true) => {
                 if let Some(port) = config.slave_port {
@@ -256,7 +265,7 @@ impl Default for Configuration {
                 slave = None;
             }
         }
-
+        //创建config
         Configuration {
             is_driver: is_master,
             local_ip,
@@ -266,6 +275,7 @@ impl Default for Configuration {
                 log_level,
                 log_cleanup,
             },
+            //设置suffle_svc_port
             shuffle_svc_port: config.shuffle_service_port,
             slave,
         }
@@ -282,6 +292,7 @@ impl Configuration {
             .map_err(|_| Error::CurrentBinaryPath)
             .unwrap();
         if let Some(dir) = binary_path.parent() {
+            //配置文件
             let conf_file = dir.join("config.toml");
             if conf_file.exists() {
                 return fs::read_to_string(conf_file)
@@ -290,6 +301,21 @@ impl Configuration {
                     .flatten();
             }
         }
+        // if let Some(parent_path) = binary_path.parent() {
+        //     //配置文件
+        //     if let Some(pparent_path) = parent_path.parent() {
+        //         if let Some(dir) = pparent_path.parent() {
+        //             let conf_file = dir.join("config_files/config.toml");
+        //             println!("{}", conf_file.display());
+        //             if conf_file.exists() {
+        //                 return fs::read_to_string(conf_file)
+        //                     .map(|content| toml::from_str::<Configuration>(&content).ok())
+        //                     .ok()
+        //                     .flatten();
+        //             }
+        //         }
+        //     }
+        // }
         None
     }
 }
