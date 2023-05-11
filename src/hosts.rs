@@ -12,7 +12,13 @@ static HOSTS: OnceCell<Hosts> = OnceCell::new();
 pub(crate) struct Hosts {
     pub master: SocketAddr,
     /// The slaves have the format "user@address", e.g. "worker@192.168.0.2"
-    pub slaves: Vec<String>,
+    pub slaves: Vec<Slave>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct Slave {
+    pub ip: String,
+    pub key: String,
 }
 
 //hosts.conf文件格式参见更新后的手册（相关库：std::net::SocketAddr，toml::from_str）

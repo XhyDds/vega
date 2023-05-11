@@ -233,7 +233,9 @@ impl Context {
         let conf_path = conf_path.to_str().unwrap();
         initialize_loggers(job_work_dir.join("ns-driver.log"));
 
-        for address in &hosts::Hosts::get()?.slaves {
+        for slave in &hosts::Hosts::get()?.slaves {
+            let address=&slave.ip;
+            let key_path=&slave.key;
             log::debug!("deploying executor at address {:?}", address);
             let address_ip: Ipv4Addr = address
                 .split('@')
@@ -242,7 +244,7 @@ impl Context {
                 .parse()
                 .map_err(|x| Error::ParseHostAddress(format!("{}", x)))?;
             address_map.push(SocketAddrV4::new(address_ip, port));
-            let key_path="~/.ssh/vlab-vm6854.pem";
+            println!("{}",key_path);
             // Create work dir:
             println!("{}",job_work_dir_str);
             Command::new("ssh")
