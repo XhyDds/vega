@@ -40,6 +40,11 @@ pub(crate) fn get_dynamic_port() -> u16 {
     FIRST_DYNAMIC_PORT + rand::thread_rng().gen_range(0, LAST_DYNAMIC_PORT - FIRST_DYNAMIC_PORT)
 }
 
+/*函数 clean_up_work_dir
+清理工作目录
+log_cleanup设置为true时，整个目录都删除；
+默认不删除.log，即只保留.log文件。
+*/
 #[allow(unused_must_use)]
 pub(crate) fn clean_up_work_dir(work_dir: &Path) {
     if env::Configuration::get().loggin.log_cleanup {
@@ -48,6 +53,8 @@ pub(crate) fn clean_up_work_dir(work_dir: &Path) {
             log::error!("failed removing tmp work dir: {}", work_dir.display());
         }
     } else if let Ok(dir) = fs::read_dir(work_dir) {
+        //除了.log文件都删
+        //read_dir返回目录下entries的iterator
         for e in dir {
             if let Ok(p) = e {
                 if let Ok(m) = p.metadata() {

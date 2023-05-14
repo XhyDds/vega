@@ -212,6 +212,7 @@ impl Default for Configuration {
         };
 
         //设置local_dir
+        //from:环境配置local_dir或temp_dir
         let local_dir = if let Some(dir) = config.local_dir {
             PathBuf::from(dir)
         } else {
@@ -220,6 +221,7 @@ impl Default for Configuration {
 
         // loggin config:
         //设置log_level,log_cleanup
+        //TOBE DONE
         let log_level = match config.log_level {
             Some(val) => val,
             _ => LogLevel::Info,

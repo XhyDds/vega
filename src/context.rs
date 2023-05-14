@@ -28,23 +28,24 @@ use Schedulers::*;
 
 // There is a problem with this approach since T needs to satisfy PartialEq, Eq for Range
 // No such restrictions are needed for Vec
+//TOBE DONE
 pub enum Sequence<T> {
     Range(Range<T>),
     Vec(Vec<T>),
 }
-
+//TOBE DONE
 #[derive(Clone)]
 enum Schedulers {
     Local(Arc<LocalScheduler>),
     Distributed(Arc<DistributedScheduler>),
 }
-
+//TOBE DONE
 impl Default for Schedulers {
     fn default() -> Schedulers {
         Schedulers::Local(Arc::new(LocalScheduler::new(20, true)))
     }
 }
-
+//TOBE DONE
 impl Schedulers {
     fn run_job<T: Data, U: Data, F>(
         &self,
@@ -116,7 +117,28 @@ impl Schedulers {
         res
     }
 }
-
+/* 结构体：Context
+TOBE DONE
+含义：
+成员：
+    next_rdd_id         :* /
+                        ** 从0开始
+                        ** 
+    next_shuffle_id     :* /
+                        ** 从0开始
+                        ** 
+    scheduler           :* /
+                        **
+                        ** 
+    address_map         :* socket_address数组
+                        ** 单机：127.0.0.1:0 多机：ip+port
+    distributed_driver  :* /
+                        **
+    work_dir            :* /
+                        ** Configuration.local_dir+"ns-session-"+job_id
+                        ** 
+补充：AtomicUsize：An integer type which can be safely shared between threads.
+*/
 #[derive(Default)]
 pub struct Context {
     next_rdd_id: Arc<AtomicUsize>,
@@ -127,7 +149,7 @@ pub struct Context {
     /// this context/session temp work dir
     work_dir: PathBuf,
 }
-
+//TOBE DONE
 impl Drop for Context {
     fn drop(&mut self) {
         #[cfg(debug_assertions)]
@@ -142,23 +164,33 @@ impl Drop for Context {
         Context::driver_clean_up_directives(&self.work_dir, &self.address_map);
     }
 }
-
+//TOBE DONE
 impl Context {
+    //new
     pub fn new() -> Result<Arc<Self>> {
+        //根据模式创建context
         Context::with_mode(env::Configuration::get().deployment_mode)
     }
 
+    /*函数with_mode
+    根据模式创建context
+    from: env::Configuration.deployment_mode
+    */
     pub fn with_mode(mode: env::DeploymentMode) -> Result<Arc<Self>> {
         match mode {
+            //分布式
             env::DeploymentMode::Distributed => {
                 if env::Configuration::get().is_driver {
+                    //master
                     let ctx = Context::init_distributed_driver()?;
                     ctx.set_cleanup_process();
                     Ok(ctx)
                 } else {
+                    //slave
                     Context::init_distributed_worker()?
                 }
             }
+            //本地
             env::DeploymentMode::Local => Context::init_local_scheduler(),
         }
     }
@@ -168,6 +200,7 @@ impl Context {
     fn set_cleanup_process(&self) {
         let address_map = self.address_map.clone();
         let work_dir = self.work_dir.clone();
+        //在master上开协程，监测ctrl-c，并在ctrl-c时优雅停机
         env::Env::run_in_async_rt(|| {
             tokio::spawn(async move {
                 // avoid moving a self clone here or drop won't be potentially called
@@ -180,17 +213,25 @@ impl Context {
             });
         })
     }
-
+    /*方法：init_local_scheduler
+    用于本地生成context
+    schedule: Schedulers::Local(Arc::new(LocalScheduler::new(20, true)))
+    */
     fn init_local_scheduler() -> Result<Arc<Self>> {
+        //生成无重复的任务id
         let job_id = Uuid::new_v4().to_string();
+        //创建任务工作目录（在Configuration的local_dir下）
         let job_work_dir = env::Configuration::get()
             .local_dir
             .join(format!("ns-session-{}", job_id));
         fs::create_dir_all(&job_work_dir).unwrap();
-
+        //TOBE DONE
         initialize_loggers(job_work_dir.join("ns-driver.log"));
+        //创建scheduler
+        //TOBE DONE
         let scheduler = Schedulers::Local(Arc::new(LocalScheduler::new(20, true)));
 
+        //LOCALHOST：127.0.0.1
         Ok(Arc::new(Context {
             next_rdd_id: Arc::new(AtomicUsize::new(0)),
             next_shuffle_id: Arc::new(AtomicUsize::new(0)),
@@ -206,6 +247,7 @@ impl Context {
     /// * Distributes a copy of the application binary to all the active worker host nodes.
     /// * Launches the workers in the remote machine using the same binary (required).
     /// * Creates and returns a working Context.
+    /// * 端口从10000开始，以5000为步长递增
     fn init_distributed_driver() -> Result<Arc<Self>> {
         let mut port: u16 = 10000;
         let mut address_map = Vec::new();
@@ -233,6 +275,7 @@ impl Context {
         let conf_path = conf_path.to_str().unwrap();
         initialize_loggers(job_work_dir.join("ns-driver.log"));
 
+        //对每个slave进行配置
         for slave in &hosts::Hosts::get()?.slaves {
             let address=&slave.ip;
             let key_path=&slave.key;
@@ -257,7 +300,7 @@ impl Context {
 
             // Copy conf file to remote:
             //创建worker_config
-            Context::create_workers_config_file(address_ip, port, conf_path)?;
+            Context::create_workers_config_file(address_ip, port+1, conf_path)?;
             let remote_path = format!("{}:{}/config.toml", address, job_work_dir_str);
             Command::new("scp")
                 .args(&["-i",key_path,conf_path, &remote_path])
@@ -268,6 +311,7 @@ impl Context {
                 })?;
 
             // Copy binary:
+            //赋值二进制文件到slave中
             let remote_path = format!("{}:{}/{}", address, job_work_dir_str, binary_name);
             println!("{}",binary_path_str);
             println!("{}",remote_path);
@@ -280,6 +324,7 @@ impl Context {
                 })?;
 
             // Deploy a remote slave:
+            //通过ssh控制slave，run程序
             let path = format!("{}/{}", job_work_dir_str, binary_name);
             log::debug!("remote path {}", path);
             Command::new("ssh")
@@ -291,7 +336,7 @@ impl Context {
                 })?;
             port += 5000;
         }
-
+        //TOBE DONE(Schedule定义)
         Ok(Arc::new(Context {
             next_rdd_id: Arc::new(AtomicUsize::new(0)),
             next_shuffle_id: Arc::new(AtomicUsize::new(0)),
@@ -306,7 +351,7 @@ impl Context {
             work_dir: job_work_dir,
         }))
     }
-
+    //函数init_distributed_worker
     fn init_distributed_worker() -> Result<!> {
         let mut work_dir = PathBuf::from("");
         match std::env::current_exe().map_err(|_| Error::CurrentBinaryPath) {
@@ -349,11 +394,15 @@ impl Context {
         }
     }
 
+    //TOBE DONE
     fn driver_clean_up_directives(work_dir: &Path, executors: &[SocketAddrV4]) {
+        //slaves下线（不适用于master）
         Context::drop_executors(executors);
         // Give some time for the executors to shut down and clean up
         std::thread::sleep(std::time::Duration::from_millis(1_500));
+        //下线完毕后清理shuffle_data//TOBE DONE
         env::Env::get().shuffle_manager.clean_up_shuffle_data();
+        //清理工作区
         utils::clean_up_work_dir(work_dir);
     }
 
@@ -370,6 +419,7 @@ impl Context {
     }
 
     fn drop_executors(address_map: &[SocketAddrV4]) {
+        //只在slaves中运行
         if env::Configuration::get().deployment_mode.is_local() {
             return;
         }
@@ -543,9 +593,12 @@ impl Context {
         UnionRdd::new(rdds)
     }
 }
-
+//TOBE DONE
 static LOGGER: OnceCell<()> = OnceCell::new();
-
+/*函数initialize_loggers
+功能：在file_path下创建log文件
+TOBE DONE
+*/
 fn initialize_loggers<P: Into<PathBuf>>(file_path: P) {
     fn _initializer(file_path: PathBuf) {
         let log_level = env::Configuration::get().loggin.log_level.into();
