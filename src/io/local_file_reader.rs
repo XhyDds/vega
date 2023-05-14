@@ -149,7 +149,7 @@ impl<T: Data> LocalFsReader<T> {
     fn load_local_files(&self) -> Result<Vec<Vec<PathBuf>>> {
         let mut total_size = 0_u64;
         if self.is_single_file {
-            let files = vec![vec![self.path.clone()]];
+            let files = vec![vec![self.path.clone()]];//按分区存，每个分区是一个vec，每个分区的vec里面是若干文件
             return Ok(files);
         }
 
@@ -159,10 +159,10 @@ impl<T: Data> LocalFsReader<T> {
         // of size per partition.
         let mut total_files = 0_u64;
         let mut k = 0;
-        let mut ex = 0.0;
-        let mut ex2 = 0.0;
+        let mut ex = 0.0;//期望？
+        let mut ex2 = 0.0;//平方的期望？
 
-        for (i, entry) in fs::read_dir(&self.path)
+        for (i, entry) in fs::read_dir(&self.path)//处理该路径下的每一个条目
             .map_err(Error::InputRead)?
             .enumerate()
         {
@@ -170,7 +170,7 @@ impl<T: Data> LocalFsReader<T> {
             if path.is_file() {
                 let is_proper_file = {
                     self.filter_ext.is_none()
-                        || path.extension() == self.filter_ext.as_ref().map(|s| s.as_ref())
+                        || path.extension() == self.filter_ext.as_ref().map(|s| s.as_ref())//根据filter对文件进行过滤
                 };
                 if !is_proper_file {
                     continue;
@@ -196,7 +196,7 @@ impl<T: Data> LocalFsReader<T> {
         }
 
         let file_size_mean = (total_size / total_files) as u64;
-        let std_dev = ((ex2 - ex.powf(2.0) / total_files as f32) / total_files as f32).sqrt();
+        let std_dev = ((ex2 - ex.powf(2.0) / total_files as f32) / total_files as f32).sqrt();//这个标准差算得有点奇怪
 
         if total_files < num_partitions {
             // Coerce the number of partitions to the number of files
@@ -205,7 +205,7 @@ impl<T: Data> LocalFsReader<T> {
 
         let avg_partition_size = (total_size / num_partitions) as u64;
 
-        let partitions = self.assign_files_to_partitions(
+        let partitions = self.assign_files_to_partitions(//将文件分配到分区
             num_partitions,
             files,
             file_size_mean,
@@ -222,9 +222,9 @@ impl<T: Data> LocalFsReader<T> {
         &self,
         num_partitions: u64,
         files: Vec<(u64, PathBuf)>,
-        file_size_mean: u64,
+        file_size_mean: u64,//平均大小
         avg_partition_size: u64,
-        std_dev: f32,
+        std_dev: f32,//文件大小的标准差
     ) -> Vec<Vec<PathBuf>> {
         // Accept ~ 0.25 std deviations top from the average partition size
         // when assigning a file to a partition.
@@ -240,18 +240,18 @@ impl<T: Data> LocalFsReader<T> {
         );
 
         let mut partitions = Vec::with_capacity(num_partitions as usize);
-        let mut partition = Vec::with_capacity(0);
+        let mut partition = Vec::with_capacity(0);//这样分配？
         let mut curr_part_size = 0_u64;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::thread_rng();//RNG牛B
 
         for (size, file) in files.into_iter() {
-            if partitions.len() as u64 == num_partitions - 1 {
+            if partitions.len() as u64 == num_partitions - 1 {//最后一个分区，所有剩余文件都放里面
                 partition.push(file);
                 continue;
             }
 
             let new_part_size = curr_part_size + size;
-            let larger_than_mean = rng.gen::<bool>();
+            let larger_than_mean = rng.gen::<bool>();//随机生成？？
             if (larger_than_mean && new_part_size < high_part_size_bound)
                 || (!larger_than_mean && new_part_size <= avg_partition_size)
             {
@@ -283,7 +283,7 @@ impl<T: Data> LocalFsReader<T> {
             // partitions than specified. This the number of partitions is actually the specified.
             if partitions.get(current_pos).unwrap().len() > 1 {
                 // Only get elements from part as long as it has more than one element
-                let last_part = partitions.get_mut(current_pos).unwrap().pop().unwrap();
+                let last_part = partitions.get_mut(current_pos).unwrap().pop().unwrap();//从当前位置的分区中取出一个文件，放到新的分区中
                 partitions.push(vec![last_part])
             } else if current_pos > 0 {
                 current_pos -= 1;
@@ -313,7 +313,7 @@ macro_rules! impl_common_lfs_rddb_funcs {
             self.context.clone()
         }
 
-        fn get_dependencies(&self) -> Vec<Dependency> {
+        fn get_dependencies(&self) -> Vec<Dependency> {//？
             vec![]
         }
 
