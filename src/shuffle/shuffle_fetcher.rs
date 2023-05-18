@@ -17,9 +17,12 @@ impl ShuffleFetcher {
         shuffle_id: usize,
         reduce_id: usize,
     ) -> Result<impl Iterator<Item = (K, V)>> {
-        //
+        //这段代码实现了一个异步的数据获取函数，该函数从指定的服务器上获取数据，并以迭代器的形式返回。
+        //该函数的输入参数包括shuffle_id和reduce_id，这两个参数用于确定要获取的shuffle数据的位置。
+        //最后，所有结果被合并成一个迭代器，并返回给调用者。
         log::debug!("inside fetch function");
         let mut inputs_by_uri = HashMap::new();
+        //首先获取服务器的URI列表
         let server_uris = env::Env::get()
             .map_output_tracker
             .get_server_uris(shuffle_id)
@@ -32,25 +35,28 @@ impl ShuffleFetcher {
             shuffle_id,
             server_uris
         );
+        //接下来，该函数将服务器URI对应服务器id打包成一个元组，并将它们添加到一个服务器队列中。
         for (index, server_uri) in server_uris.into_iter().enumerate() {
             inputs_by_uri
                 .entry(server_uri)
                 .or_insert_with(Vec::new)
                 .push(index);
-        }//get map:uri->index
+        } //get map:uri->index，按URI分组
+
         let mut server_queue = Vec::new();
         let mut total_results = 0;
         for (key, value) in inputs_by_uri {
             total_results += value.len();
             server_queue.push((key, value));
-        }//装填server_queue，uri->indexs
+        } //装填server_queue，uri->indexs
         log::debug!(
             "servers for shuffle id #{:?} & reduce id #{}: {:?}",
             shuffle_id,
             reduce_id,
             server_queue
         );
-        let num_tasks = server_queue.len();//uri
+        //然后，该函数为每个服务器URI生成一个异步任务，并等待所有任务完成。
+        let num_tasks = server_queue.len(); //uri数
         let server_queue = Arc::new(Mutex::new(server_queue));
         let failure = Arc::new(AtomicBool::new(false));
         let mut tasks = Vec::with_capacity(num_tasks);
@@ -59,6 +65,7 @@ impl ShuffleFetcher {
             let failure = failure.clone();
             // spawn a future for each expected result set
             let task = async move {
+                //每个异步任务都会从服务器队列中获取下一个元组，并使用HTTP客户端从服务器中获取数据
                 let client = Client::builder().http2_only(true).build_http::<Body>();
                 let mut lock = server_queue.lock().await;
                 if let Some((server_uri, input_ids)) = lock.pop() {
@@ -81,7 +88,8 @@ impl ShuffleFetcher {
                         let data_bytes = {
                             let res = client.get(chunk_uri).await?;
                             hyper::body::to_bytes(res.into_body()).await
-                        };
+                        }; //获取数据
+                           //如果获取数据成功，则将其解析为(K, V)元组，并将它们添加到shuffle_chunks向量中。
                         if let Ok(bytes) = data_bytes {
                             let deser_data = bincode::deserialize::<Vec<(K, V)>>(&bytes.to_vec())?;
                             shuffle_chunks.push(deser_data);
@@ -91,7 +99,7 @@ impl ShuffleFetcher {
                         }
                     }
                     Ok::<Box<dyn Iterator<Item = (K, V)> + Send>, _>(Box::new(
-                        shuffle_chunks.into_iter().flatten(),
+                        shuffle_chunks.into_iter().flatten(), //deser_data
                     ))
                 } else {
                     Ok::<Box<dyn Iterator<Item = (K, V)> + Send>, _>(Box::new(std::iter::empty()))

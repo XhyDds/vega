@@ -68,13 +68,13 @@ impl ShuffleManager {
         let path = self
             .shuffle_dir
             .join(format!("{}/{}", shuffle_id, input_id));
-        fs::create_dir_all(&path)?;
+        fs::create_dir_all(&path)?;//创建路径！
         let file_path = path.join(format!("{}", output_id));
-        fs::File::create(&file_path)?;
+        fs::File::create(&file_path)?;//创建文件
         Ok(file_path
             .to_str()
             .ok_or_else(|| ShuffleError::CouldNotCreateShuffleDir)?
-            .to_owned())
+            .to_owned())//返回文件路径
     }
 
     pub fn check_status(&self) -> Result<StatusCode> {
