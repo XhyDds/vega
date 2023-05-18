@@ -382,7 +382,7 @@ mod tests {
                 thread::sleep_ms(5);
             }
             Err(Error::Other)
-        };
+        }
 
         fn result_checker(sender: Sender<ComputeResult>, result: Result<Signal>) -> Result<()> {
             match result {
