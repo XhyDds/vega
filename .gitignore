@@ -7,3 +7,4 @@
 /target/
 /userGuide/book
 /Cargo.lock
+.vscode/

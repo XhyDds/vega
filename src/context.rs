@@ -73,6 +73,7 @@ impl Schedulers {
                 res
             }
             Local(local) => {
+                println!("localllll");
                 let res = local
                     .clone()
                     .run_job(func, final_rdd, partitions, allow_local);
@@ -81,6 +82,7 @@ impl Schedulers {
                     op_name,
                     start.elapsed().as_secs()
                 );
+                println!("ret res");
                 res
             }
         }
@@ -466,7 +468,9 @@ impl Context {
     where
         I: IntoIterator<Item = T>,
     {
+        //seq是迭代器，num_slices是分区数量
         let rdd = self.parallelize(seq, num_slices);
+        // parallelize  可以将 seq data按num_slices划分，产生rdd
         rdd.register_op_name("make_rdd");
         rdd
     }
@@ -493,6 +497,13 @@ impl Context {
     where
         I: IntoIterator<Item = T>,
     {
+        //SerArc是一个基于Serde的Rust库，它提供了一种将Rust结构体序列化为Arc的方法。
+        /*Serde是一个Rust库，用于序列化和反序列化Rust数据结构。
+         * 它支持以下数据类型的序列化和反序列化，
+         * 包括String、&str、usize、Vec<T>和HashMap<K,V>。
+         * 此外，Serde还提供了derive macro来
+         * 为你自己定义的数据类型提供序列化和反序列化的实现
+         * 包含JSON,Pickle,URL,TOML等 */
         SerArc::new(ParallelCollection::new(self.clone(), seq, num_slices))
     }
 
@@ -518,13 +529,16 @@ impl Context {
         F: SerFunc(Box<dyn Iterator<Item = T>>) -> U,
     {
         let cl = Fn!(move |(_task_context, iter)| (func)(iter));
+        // println!("fn1");
         let func = Arc::new(cl);
+        // println!("fn2");
         self.scheduler.run_job(
             func,
             rdd.clone(),
             (0..rdd.number_of_splits()).collect(),
             false,
         )
+        // println!("fn3");
     }
 
     pub fn run_job_with_partitions<T: Data, U: Data, F, P>(

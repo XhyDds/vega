@@ -113,6 +113,10 @@ impl<T: Data> ParallelCollection<T> {
         }
     }
 
+    /**
+     * slice 接收data和分区数量 num_slices
+     * 消耗掉data中的元素，产生一堆内存中分区对象
+     */
     fn slice<I>(data: I, num_slices: usize) -> Vec<Arc<Vec<T>>>
     where
         I: IntoIterator<Item = T>,
@@ -122,6 +126,9 @@ impl<T: Data> ParallelCollection<T> {
         } else {
             let mut slice_count = 0;
             let data: Vec<_> = data.into_iter().collect();
+            // data是迭代器类型，迭代器的适配器分为消费者适配器和迭代器适配器
+            // 消费者适配器调用next方法会消耗掉元素，立即就要使用元素,例如collect
+            // 迭代器适配器例如filter,map不会消耗，只是表示一种关系，是懒运算
             let data_len = data.len();
             let mut end = ((slice_count + 1) * data_len) / num_slices;
             let mut output = Vec::new();

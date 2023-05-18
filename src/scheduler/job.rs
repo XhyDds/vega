@@ -82,10 +82,13 @@ where
     where
         S: NativeScheduler,
     {
+        println!("from schedular");
         let run_id = scheduler.get_next_job_id();
+        println!("ready");
         let final_stage = scheduler
             .new_stage(final_rdd.clone().get_rdd_base(), None)
             .await?;
+        println!("set up ");
         Ok(JobTracker::new(
             run_id,
             final_stage,

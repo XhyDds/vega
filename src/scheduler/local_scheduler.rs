@@ -155,8 +155,10 @@ impl LocalScheduler {
         // construction of dag task graph. dag task graph construction needs to be altered
         let selfc = self.clone();
         let _lock = selfc.scheduler_lock.lock();
+        println!("get lock");
         env::Env::run_in_async_rt(|| -> Result<Vec<U>> {
             futures::executor::block_on(async move {
+                println!("heere");
                 let jt = JobTracker::from_scheduler(
                     &*self,
                     func,
@@ -165,6 +167,7 @@ impl LocalScheduler {
                     NoOpListener,
                 )
                 .await?;
+                println!("h2");
                 self.event_process_loop(allow_local, jt).await
             })
         })

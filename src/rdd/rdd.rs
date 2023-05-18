@@ -66,6 +66,7 @@ impl RddVals {
             dependencies: Vec::new(),
             should_cache: false,
             context: Arc::downgrade(&sc),
+            //downgrade用于返回弱引用，避免clone产生引用计数，主要避免循环引用，但是不能避免deallocation
         }
     }
 
@@ -136,6 +137,7 @@ impl Ord for dyn RddBase {
 }
 
 impl<I: Rdd + ?Sized> RddBase for SerArc<I> {
+    //SerArc实质上就是实现了serde_traitobject的Arc
     fn get_rdd_id(&self) -> usize {
         (**self).get_rdd_base().get_rdd_id()
     }
@@ -423,7 +425,9 @@ pub trait Rdd: RddBase + 'static {
     {
         let cl =
             Fn!(|iter: Box<dyn Iterator<Item = Self::Item>>| iter.collect::<Vec<Self::Item>>());
-        let results = self.get_context().run_job(self.get_rdd(), cl)?;
+        let _results = self.get_context();
+        let rd=self.get_rdd();
+        let results=_results.run_job(rd, cl)?;
         let size = results.iter().fold(0, |a, b: &Vec<Self::Item>| a + b.len());
         Ok(results
             .into_iter()
