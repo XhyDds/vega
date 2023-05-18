@@ -224,7 +224,7 @@ impl Default for Configuration {
         //TOBE DONE
         let log_level = match config.log_level {
             Some(val) => val,
-            _ => LogLevel::Debug,
+            _ => LogLevel::Info,
         };
         let log_cleanup = match config.log_cleanup {
             Some(cond) => cond,
