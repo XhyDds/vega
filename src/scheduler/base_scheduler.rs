@@ -47,18 +47,15 @@ pub(crate) trait NativeScheduler: Send + Sync {
         shuffle_dependency: Option<Arc<dyn ShuffleDependencyTrait>>,
     ) -> Result<Stage> {
         log::debug!("creating new stage");
-        println!("new stage");
         env::Env::get()
             .cache_tracker
             .register_rdd(rdd_base.get_rdd_id(), rdd_base.number_of_splits())
             .await?;
-        println!("ns2");
         if let Some(dep) = shuffle_dependency.clone() {
             log::debug!("shuffle dependency exists, registering to map output tracker");
             self.register_shuffle(dep.get_shuffle_id(), rdd_base.number_of_splits());
             log::debug!("new stage tracker after");
         }
-        println!("ns3");
         let id = self.get_next_stage_id();
         log::debug!("new stage id #{}", id);
         let stage = Stage::new(
@@ -67,7 +64,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
             shuffle_dependency,
             self.get_parent_stages(rdd_base).await?,
         );
-        println!("ns4");
+        println!("stage built");
         self.insert_into_stage_cache(id, stage.clone());
         log::debug!("returning new stage #{}", id);
         Ok(stage)

@@ -84,11 +84,10 @@ where
     {
         println!("from schedular");
         let run_id = scheduler.get_next_job_id();
-        println!("ready");
+        println!("scheduler get run_id complete！");
         let final_stage = scheduler
             .new_stage(final_rdd.clone().get_rdd_base(), None)
             .await?;
-        println!("set up ");
         Ok(JobTracker::new(
             run_id,
             final_stage,

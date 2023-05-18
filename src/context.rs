@@ -534,7 +534,6 @@ impl Context {
             (0..rdd.number_of_splits()).collect(),
             false,
         )
-        // println!("fn3");
     }
 
     pub fn run_job_with_partitions<T: Data, U: Data, F, P>(
