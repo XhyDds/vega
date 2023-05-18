@@ -25,7 +25,7 @@ async fn existing_tokio_rt() -> Result<()> {
     Ok(())
 }
 
-#[async_std::test]
+#[tokio::test]
 async fn existing_async_std_rt() -> Result<()> {
     let initially = async { "initially" }.await;
     assert_eq!(initially, "initially");

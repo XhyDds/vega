@@ -80,7 +80,7 @@ fn read(file: PathBuf) -> Vec<((i32, String, i64), (i64, f64))> {
                 .map(|x| unsafe { String::from_utf8_unchecked(x.data().to_vec()) });
             let time = time.into_iter().map(|t| {
                 let t = t / 1000;
-                i64::from(Utc.timestamp(t, 0).hour())
+                i64::from(Utc.timestamp_opt(t, 0).unwrap().hour())
             });
             let bytes = bytes.into_iter().map(|b| (b, 1.0));
             let key = izip!(first, second, time);

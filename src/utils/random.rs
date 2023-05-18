@@ -175,15 +175,19 @@ impl BernoulliCellSampler {
         // epsilon slop to avoid failure from floating point jitter.
         assert!(
             lb <= (ub + ROUNDING_EPSILON),
-            format!("Lower bound {} must be <= upper bound {}", lb, ub)
+            "Lower bound {} must be <= upper bound {}",
+            lb,
+            ub
         );
         assert!(
             lb >= (0.0 - ROUNDING_EPSILON),
-            format!("Lower bound {} must be >= 0.0", lb)
+            "Lower bound {} must be >= 0.0",
+            lb
         );
         assert!(
             ub <= (1.0 + ROUNDING_EPSILON),
-            format!("Upper bound {} must be <= 1.0", ub)
+            "Upper bound {} must be <= 1.0",
+            ub
         );
 
         BernoulliCellSampler { lb, ub, complement }

@@ -64,7 +64,7 @@ rusoto_s3 = { version = "0.43", optional = true }
 capnpc = "0.12.1"
 
 [dev-dependencies]
-async-std = { version = "1.5.0", features = ["attributes"] } 
+## async-std = { version = "1.5.0", features = ["attributes"] } 
 chrono = "0.4.11"
 parquet = "0.15.1"
 tempfile = "3"
