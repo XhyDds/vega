@@ -306,7 +306,7 @@ impl Context {
 
             // Copy conf file to remote:
             //创建worker_config(config.toml)
-            Context::create_workers_config_file(address_ip, port + 1, conf_path)?;
+            Context::create_workers_config_file(address_ip, port, conf_path)?;
             let remote_path = format!("{}:{}/config.toml", address, job_work_dir_str);
             Command::new("scp")
                 .args(&["-i", key_path, conf_path, &remote_path])
