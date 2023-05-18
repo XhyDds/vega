@@ -73,7 +73,6 @@ impl Schedulers {
                 res
             }
             Local(local) => {
-                println!("localllll");
                 let res = local
                     .clone()
                     .run_job(func, final_rdd, partitions, allow_local);
@@ -82,7 +81,6 @@ impl Schedulers {
                     op_name,
                     start.elapsed().as_secs()
                 );
-                println!("ret res");
                 res
             }
         }
@@ -529,9 +527,7 @@ impl Context {
         F: SerFunc(Box<dyn Iterator<Item = T>>) -> U,
     {
         let cl = Fn!(move |(_task_context, iter)| (func)(iter));
-        // println!("fn1");
         let func = Arc::new(cl);
-        // println!("fn2");
         self.scheduler.run_job(
             func,
             rdd.clone(),
