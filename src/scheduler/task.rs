@@ -9,6 +9,14 @@ use downcast_rs::{impl_downcast, Downcast};
 use serde_derive::{Deserialize, Serialize};
 use serde_traitobject::{Deserialize, Serialize};
 
+/**
+ * 结构体：TaskContext
+ * 描述：TaskContext是Task的上下文，用于描述Task的一些信息
+ * 成员：
+ * stage_id: usize，Task所属的Stage的ID
+ * split_id: usize，Task所属的分区的ID
+ * attempt_id: usize，Task的尝试ID
+ */
 pub struct TaskContext {
     pub stage_id: usize,
     pub split_id: usize,
@@ -25,6 +33,10 @@ impl TaskContext {
     }
 }
 
+/**
+ * 特性：TaskBase
+ * 描述：Task的基类，包括一些获取信息的方法
+ */
 pub trait TaskBase: Downcast + Send + Sync {
     fn get_run_id(&self) -> usize;
     fn get_stage_id(&self) -> usize;
@@ -41,6 +53,10 @@ pub trait TaskBase: Downcast + Send + Sync {
 }
 impl_downcast!(TaskBase);
 
+/**
+ * 比较方法：PartialOrd、PartialEq、Eq、Ord
+ * 与其他的TaskBase进行比较，比较的是Task的ID，用于升序排序
+ */
 impl PartialOrd for dyn TaskBase {
     fn partial_cmp(&self, other: &dyn TaskBase) -> Option<Ordering> {
         Some(self.get_task_id().cmp(&other.get_task_id()))

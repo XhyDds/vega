@@ -11,6 +11,21 @@ use crate::SerBox;
 use serde_derive::{Deserialize, Serialize};
 use serde_traitobject::{Deserialize, Serialize};
 
+/**
+ * 结构体：ResultTask
+ * 描述：ResultTask是一个Task，它将计算结果作为一个RDD的一部分返回。
+ * 成员：
+ * task_id: usize，Task的ID
+ * run_id: usize，Task的运行ID
+ * stage_id: usize，Task所属的Stage的ID
+ * pinned: bool，Task是否被固定
+ * rdd: Arc<dyn Rdd<Item = T>>，Task所属的RDD
+ * func: Arc<F>，Task的计算函数
+ * partition: usize，Task所属的分区
+ * locs: Vec<Ipv4Addr>，Task所在的位置，IP地址
+ * output_id: usize，Task的输出ID
+ * _marker: PhantomData<T>，泛型标记
+ */
 #[derive(Serialize, Deserialize)]
 pub(crate) struct ResultTask<T: Data, U: Data, F>
 where
@@ -35,6 +50,10 @@ where
     _marker: PhantomData<T>,
 }
 
+/**
+ * 方法：fmt
+ * 描述：用于格式化输出
+ */
 impl<T: Data, U: Data, F> Display for ResultTask<T, U, F>
 where
     F: Fn((TaskContext, Box<dyn Iterator<Item = T>>)) -> U
@@ -50,6 +69,10 @@ where
     }
 }
 
+/**
+ * 方法：clone
+ * 描述：复制一个ResultTask
+ */
 impl<T: Data, U: Data, F> ResultTask<T, U, F>
 where
     F: Fn((TaskContext, Box<dyn Iterator<Item = T>>)) -> U
@@ -76,6 +99,10 @@ where
     }
 }
 
+/**
+ * 方法：new
+ * 描述：新建一个ResultTask
+ */
 impl<T: Data, U: Data, F> ResultTask<T, U, F>
 where
     F: Fn((TaskContext, Box<dyn Iterator<Item = T>>)) -> U
@@ -111,6 +138,9 @@ where
     }
 }
 
+/**
+ * 一些获取ResultTask信息的方法
+ */
 impl<T: Data, U: Data, F> TaskBase for ResultTask<T, U, F>
 where
     F: Fn((TaskContext, Box<dyn Iterator<Item = T>>)) -> U
@@ -146,6 +176,10 @@ where
     }
 }
 
+/**
+ * 方法：run
+ * 描述：运行ResultTask，先根据rdd和partition获取到对应的分区，然后调用func计算
+ */
 impl<T: Data, U: Data, F> Task for ResultTask<T, U, F>
 where
     F: Fn((TaskContext, Box<dyn Iterator<Item = T>>)) -> U
