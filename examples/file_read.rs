@@ -17,7 +17,7 @@ fn main() -> Result<()> {
             let line = line.split(' ').collect::<Vec<_>>();
             let mut time: i64 = line[8].parse::<i64>().unwrap();
             time /= 1000;
-            let time = Utc.timestamp(time, 0).hour();
+            let time = Utc.timestamp_opt(time, 0).unwrap().hour();
             (
                 (line[0].to_string(), line[1].to_string(), time),
                 (line[7].parse::<i64>().unwrap(), 1.0),

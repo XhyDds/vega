@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+// use std::collections::HashSet;
 use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
 use std::sync::Arc;
@@ -65,7 +65,7 @@ fn test_basic_operations() -> Result<()> {
     //assert_eq!(nums.filter(Fn!(|x:i32| x>2)).collect(),vec![3i32,4])
     assert_eq!(
         nums.flat_map(Fn!(
-            |x: i32| Box::new((1..(1 + x))) as Box<dyn Iterator<Item = _>>
+            |x: i32| Box::new(1..(1 + x)) as Box<dyn Iterator<Item = _>>
         ))
         .collect()?,
         vec![1i32, 1, 2, 1, 2, 3, 1, 2, 3, 4]

@@ -33,13 +33,19 @@ pub enum Sequence<T> {
     Range(Range<T>),
     Vec(Vec<T>),
 }
-//TOBE DONE
+/*Schedulers结构体
+对local模式和distributed模式的scheduler封装得到的enum
+用于中master中，用于管理workers
+具体的local和distributed的定义取自"./scheduler"中
+*/
 #[derive(Clone)]
 enum Schedulers {
     Local(Arc<LocalScheduler>),
     Distributed(Arc<DistributedScheduler>),
 }
-//TOBE DONE
+/*Schedulers默认的构造函数
+默认local，max_failures=20，master=true
+*/
 impl Default for Schedulers {
     fn default() -> Schedulers {
         Schedulers::Local(Arc::new(LocalScheduler::new(20, true)))
@@ -117,26 +123,20 @@ impl Schedulers {
         res
     }
 }
+/**************************************************************************************/
 /* 结构体：Context
-TOBE DONE
 含义：
 成员：
     next_rdd_id         :* /
                         ** 从0开始
-                        ** 
     next_shuffle_id     :* /
                         ** 从0开始
-                        ** 
     scheduler           :* /
-                        **
-                        ** 
     address_map         :* socket_address数组
                         ** 单机：127.0.0.1:0 多机：ip+port
     distributed_driver  :* /
-                        **
     work_dir            :* /
                         ** Configuration.local_dir+"ns-session-"+job_id
-                        ** 
 补充：AtomicUsize：An integer type which can be safely shared between threads.
 */
 #[derive(Default)]
@@ -149,7 +149,11 @@ pub struct Context {
     /// this context/session temp work dir
     work_dir: PathBuf,
 }
-//TOBE DONE
+
+/*Context超出作用域时的析构函数
+即，程序结束运行时的清理（正常退出）
+打印log信息+调用driver_clean_up_directives清理目录
+*/
 impl Drop for Context {
     fn drop(&mut self) {
         #[cfg(debug_assertions)]
@@ -197,6 +201,7 @@ impl Context {
 
     /// Sets a handler to receives any external signal to stop the process
     /// and shuts down gracefully any ongoing op
+    /// 一旦ctrl c ，即开始driver_clean_up_directives（非正常退出）
     fn set_cleanup_process(&self) {
         let address_map = self.address_map.clone();
         let work_dir = self.work_dir.clone();
@@ -225,10 +230,10 @@ impl Context {
             .local_dir
             .join(format!("ns-session-{}", job_id));
         fs::create_dir_all(&job_work_dir).unwrap();
-        //TOBE DONE
+        //创建loggers
         initialize_loggers(job_work_dir.join("ns-driver.log"));
         //创建scheduler
-        //TOBE DONE
+        //同默认配置：local，max_failures=20，master=true
         let scheduler = Schedulers::Local(Arc::new(LocalScheduler::new(20, true)));
 
         //LOCALHOST：127.0.0.1
@@ -273,12 +278,13 @@ impl Context {
         fs::create_dir_all(&job_work_dir).unwrap();
         let conf_path = job_work_dir.join("config.toml");
         let conf_path = conf_path.to_str().unwrap();
+        //创建logger
         initialize_loggers(job_work_dir.join("ns-driver.log"));
 
         //对每个slave进行配置
         for slave in &hosts::Hosts::get()?.slaves {
-            let address=&slave.ip;
-            let key_path=&slave.key;
+            let address = &slave.ip;
+            let key_path = &slave.key;
             log::debug!("deploying executor at address {:?}", address);
             let address_ip: Ipv4Addr = address
                 .split('@')
@@ -287,11 +293,11 @@ impl Context {
                 .parse()
                 .map_err(|x| Error::ParseHostAddress(format!("{}", x)))?;
             address_map.push(SocketAddrV4::new(address_ip, port));
-            println!("{}",key_path);
+            println!("{}", key_path);
             // Create work dir:
-            println!("{}",job_work_dir_str);
+            println!("{}", job_work_dir_str);
             Command::new("ssh")
-                .args(&["-i",key_path,address, "mkdir", &job_work_dir_str])
+                .args(&["-i", key_path, address, "mkdir", &job_work_dir_str])
                 .output()
                 .map_err(|e| Error::CommandOutput {
                     source: e,
@@ -299,11 +305,11 @@ impl Context {
                 })?;
 
             // Copy conf file to remote:
-            //创建worker_config
-            Context::create_workers_config_file(address_ip, port+1, conf_path)?;
+            //创建worker_config(config.toml)
+            Context::create_workers_config_file(address_ip, port + 1, conf_path)?;
             let remote_path = format!("{}:{}/config.toml", address, job_work_dir_str);
             Command::new("scp")
-                .args(&["-i",key_path,conf_path, &remote_path])
+                .args(&["-i", key_path, conf_path, &remote_path])
                 .output()
                 .map_err(|e| Error::CommandOutput {
                     source: e,
@@ -313,10 +319,10 @@ impl Context {
             // Copy binary:
             //赋值二进制文件到slave中
             let remote_path = format!("{}:{}/{}", address, job_work_dir_str, binary_name);
-            println!("{}",binary_path_str);
-            println!("{}",remote_path);
+            println!("{}", binary_path_str);
+            println!("{}", remote_path);
             Command::new("scp")
-                .args(&[ "-i",key_path,&binary_path_str, &remote_path])
+                .args(&["-i", key_path, &binary_path_str, &remote_path])
                 .output()
                 .map_err(|e| Error::CommandOutput {
                     source: e,
@@ -328,7 +334,7 @@ impl Context {
             let path = format!("{}/{}", job_work_dir_str, binary_name);
             log::debug!("remote path {}", path);
             Command::new("ssh")
-                .args(&["-i",key_path,address, &path])
+                .args(&["-i", key_path, address, &path])
                 .spawn()
                 .map_err(|e| Error::CommandOutput {
                     source: e,
@@ -336,7 +342,7 @@ impl Context {
                 })?;
             port += 5000;
         }
-        //TOBE DONE(Schedule定义)
+        //此处scheduler采用ditributed模式，特别的参数是port=10000//WHY TOBE DONE
         Ok(Arc::new(Context {
             next_rdd_id: Arc::new(AtomicUsize::new(0)),
             next_shuffle_id: Arc::new(AtomicUsize::new(0)),
@@ -351,21 +357,28 @@ impl Context {
             work_dir: job_work_dir,
         }))
     }
-    //函数init_distributed_worker
+    /*函数init_distributed_worker
+    初始化worker
+    包含创建logger，executor，并等待executor执行结束后，开始清理目录
+    */
     fn init_distributed_worker() -> Result<!> {
         let mut work_dir = PathBuf::from("");
         match std::env::current_exe().map_err(|_| Error::CurrentBinaryPath) {
             Ok(binary_path) => {
                 match binary_path.parent().ok_or_else(|| Error::CurrentBinaryPath) {
                     Ok(dir) => work_dir = dir.into(),
+                    //如果失败，worker立即下线
                     Err(err) => Context::worker_clean_up_directives(Err(err), work_dir)?,
                 };
+                //logger
                 initialize_loggers(work_dir.join("ns-executor.log"));
             }
+            //如果失败，worker立即下线
             Err(err) => Context::worker_clean_up_directives(Err(err), work_dir)?,
         }
 
         log::debug!("starting worker");
+        //获取port
         let port = match env::Configuration::get()
             .slave
             .as_ref()
@@ -375,10 +388,15 @@ impl Context {
             Ok(port) => port,
             Err(err) => Context::worker_clean_up_directives(Err(err), work_dir)?,
         };
+        //创建executor，port为master指定的port
         let executor = Arc::new(Executor::new(port));
+        //worker结束运行后执行清理目录操作//TOBE DONE(worker如何运行)
         Context::worker_clean_up_directives(executor.worker(), work_dir)
     }
 
+    /*函数driver_clean_up_directives
+    清理目录，结束运行（slave使用）
+    */
     fn worker_clean_up_directives(run_result: Result<Signal>, work_dir: PathBuf) -> Result<!> {
         env::Env::get().shuffle_manager.clean_up_shuffle_data();
         utils::clean_up_work_dir(&work_dir);
@@ -394,18 +412,26 @@ impl Context {
         }
     }
 
-    //TOBE DONE
+    /*函数driver_clean_up_directives
+    清理目录，结束运行（master使用）
+    适用于local和distributed两种模式
+    distributed模式额外控制slaves下线
+    */
     fn driver_clean_up_directives(work_dir: &Path, executors: &[SocketAddrV4]) {
-        //slaves下线（不适用于master）
+        //master控制slaves下线（只在分布式下）
         Context::drop_executors(executors);
         // Give some time for the executors to shut down and clean up
         std::thread::sleep(std::time::Duration::from_millis(1_500));
-        //下线完毕后清理shuffle_data//TOBE DONE
+        //slaves下线完毕后清理shuffle_data//TOBE DONE(lhm)
         env::Env::get().shuffle_manager.clean_up_shuffle_data();
         //清理工作区
         utils::clean_up_work_dir(work_dir);
     }
 
+    /*函数create_workers_config_file
+    为workers创建对应的conf.toml配置文件
+    以master的config为基础，修改local_ip为自机ip，slave为init_distributed_driver处设置的端口，is_driver为false
+     */
     fn create_workers_config_file(local_ip: Ipv4Addr, port: u16, config_path: &str) -> Result<()> {
         let mut current_config = env::Configuration::get().clone();
         current_config.local_ip = local_ip;
@@ -418,12 +444,17 @@ impl Context {
         Ok(())
     }
 
+    /*函数drop_executors
+    master中运行，只在分布式下运行
+    向slaves发送ShutDownGracefully信号
+    */
     fn drop_executors(address_map: &[SocketAddrV4]) {
-        //只在slaves中运行
+        //只在distributed模式下运行
         if env::Configuration::get().deployment_mode.is_local() {
             return;
         }
 
+        //遍历slaves
         for socket_addr in address_map {
             log::debug!(
                 "dropping executor in {:?}:{:?}",
@@ -433,6 +464,7 @@ impl Context {
             if let Ok(mut stream) =
                 TcpStream::connect(format!("{}:{}", socket_addr.ip(), socket_addr.port() + 10))
             {
+                //对TcpStream发送ShutDownGracefully信号
                 let signal = bincode::serialize(&Signal::ShutDownGracefully).unwrap();
                 let mut message = capnp::message::Builder::new_default();
                 let mut task_data = message.init_root::<serialized_data::Builder>();
@@ -602,7 +634,7 @@ impl Context {
         UnionRdd::new(rdds)
     }
 }
-//TOBE DONE
+//LOGGER
 static LOGGER: OnceCell<()> = OnceCell::new();
 /*函数initialize_loggers
 功能：在file_path下创建log文件
