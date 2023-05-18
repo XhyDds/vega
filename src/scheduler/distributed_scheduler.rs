@@ -431,7 +431,7 @@ impl NativeScheduler for DistributedScheduler {
                         .await;
                         break;
                     }
-                    Err(_) => {
+                    Err(e) => {
                         if num_retries > 5 {
                             panic!("executor @{} not initialized", target_executor.port());
                         }
