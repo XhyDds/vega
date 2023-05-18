@@ -1,8 +1,8 @@
 use std::result::Result as StdResult;
 
 use crate::SerBox;
-use hyper::{Body, Response, StatusCode};
-use thiserror::Error;
+use hyper::{Body, Response, StatusCode};//http
+use thiserror::Error;//#[error("deserialization error")]用法的奥秘
 
 pub(self) mod shuffle_fetcher;
 pub(self) mod shuffle_manager;
@@ -15,7 +15,7 @@ pub(crate) use shuffle_map_task::ShuffleMapTask;
 pub(crate) type Result<T> = StdResult<T, ShuffleError>;
 
 #[derive(Debug, Error)]
-pub enum ShuffleError {
+pub enum ShuffleError {//error type
     #[error("failed to create local shuffle dir after 10 attempts")]
     CouldNotCreateShuffleDir,
 
@@ -50,7 +50,7 @@ pub enum ShuffleError {
     UnexpectedUri(String),
 
     #[error("failed fetching shuffle data uris")]
-    FailFetchingShuffleUris { source: Box<crate::Error> },
+    FailFetchingShuffleUris { source: Box<crate::Error> },//这个花括号是结构体来的
 
     #[error("unrecognized error (todo!)")]
     Other,
