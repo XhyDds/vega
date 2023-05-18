@@ -17,6 +17,7 @@ impl ShuffleFetcher {
         shuffle_id: usize,
         reduce_id: usize,
     ) -> Result<impl Iterator<Item = (K, V)>> {
+        //
         log::debug!("inside fetch function");
         let mut inputs_by_uri = HashMap::new();
         let server_uris = env::Env::get()
@@ -25,7 +26,7 @@ impl ShuffleFetcher {
             .await
             .map_err(|err| ShuffleError::FailFetchingShuffleUris {
                 source: Box::new(err),
-            })?;
+            })?; //get server_uris: Vec<String>
         log::debug!(
             "server uris for shuffle id #{}: {:?}",
             shuffle_id,
@@ -36,20 +37,20 @@ impl ShuffleFetcher {
                 .entry(server_uri)
                 .or_insert_with(Vec::new)
                 .push(index);
-        }
+        }//get map:uri->index
         let mut server_queue = Vec::new();
         let mut total_results = 0;
         for (key, value) in inputs_by_uri {
             total_results += value.len();
             server_queue.push((key, value));
-        }
+        }//装填server_queue，uri->indexs
         log::debug!(
             "servers for shuffle id #{:?} & reduce id #{}: {:?}",
             shuffle_id,
             reduce_id,
             server_queue
         );
-        let num_tasks = server_queue.len();
+        let num_tasks = server_queue.len();//uri
         let server_queue = Arc::new(Mutex::new(server_queue));
         let failure = Arc::new(AtomicBool::new(false));
         let mut tasks = Vec::with_capacity(num_tasks);
@@ -124,13 +125,14 @@ impl ShuffleFetcher {
         input_id: usize,
         reduce_id: usize,
     ) -> Result<Uri> {
+        //base -> base/input_id/reduce_id
         let input_id = input_id.to_string();
         let reduce_id = reduce_id.to_string();
         let path_tail = ["/".to_string(), input_id, "/".to_string(), reduce_id].concat();
         if chunk.len() == base.len() {
             chunk.push_str(&path_tail);
         } else {
-            chunk.replace_range(base.len().., &path_tail);
+            chunk.replace_range(base.len().., &path_tail); //base后面已经跟了tail了
         }
         Ok(Uri::try_from(chunk.as_str())?)
     }
