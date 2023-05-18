@@ -211,6 +211,7 @@ impl MapOutputTracker {
     }
 
     pub async fn get_server_uris(&self, shuffle_id: usize) -> Result<Vec<String>> {
+        //get uri for shuffle task #{shuffle_id}
         log::debug!(
             "trying to get uri for shuffle task #{}, current server uris: {:?}",
             shuffle_id,
