@@ -1,6 +1,0 @@
-pub trait Data
-pub trait AnyData
-pub struct Box<T: ?Sized>(boxed::Box<T>)
-pub trait SerFunc<Args>
-pub trait Func<Args>
-serializable_traits

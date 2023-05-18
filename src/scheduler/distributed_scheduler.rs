@@ -435,7 +435,7 @@ impl NativeScheduler for DistributedScheduler {
                         if num_retries > 5 {
                             panic!("executor @{} not initialized", target_executor.port());
                         }
-                        tokio::time::delay_for(Duration::from_millis(20)).await;
+                        tokio::time::delay_for(Duration::from_millis(200)).await;
                         num_retries += 1;
                         continue;
                     }
