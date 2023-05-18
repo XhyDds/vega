@@ -82,9 +82,8 @@ where
     where
         S: NativeScheduler,
     {
-        println!("from schedular");
         let run_id = scheduler.get_next_job_id();
-        println!("scheduler get run_id complete！");
+        println!("scheduler get job_id complete！");
         let final_stage = scheduler
             .new_stage(final_rdd.clone().get_rdd_base(), None)
             .await?;

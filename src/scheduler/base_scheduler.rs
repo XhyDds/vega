@@ -64,7 +64,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
             shuffle_dependency,
             self.get_parent_stages(rdd_base).await?,
         );
-        println!("stage built");
+        println!("stage is built");
         self.insert_into_stage_cache(id, stage.clone());
         log::debug!("returning new stage #{}", id);
         Ok(stage)
