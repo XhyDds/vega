@@ -16,5 +16,6 @@ Framework tested only on Linux, requires nightly Rust. Read how to get started i
 
 If you are interested in contributing please jump on Gitter and check out and head to the issue tracker where you can find open issues (anything labelled `good first issue` and `help wanted` is up for grabs).
 
-## 再更新（By XhyDds）
-配置流程见文档 [help](./user_guide/src/help_doc_XhyDds.md).
+## Updating(By ThisLynx)
+单机配置流程见文档 [help_loc](./user_guide/src/help_doc_loc.md).
+多机配置流程见文档 [help_dis](./user_guide/src/help_doc_dis.md)

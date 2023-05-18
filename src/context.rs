@@ -79,7 +79,6 @@ impl Schedulers {
                 res
             }
             Local(local) => {
-                println!("localllll");
                 let res = local
                     .clone()
                     .run_job(func, final_rdd, partitions, allow_local);
@@ -88,7 +87,6 @@ impl Schedulers {
                     op_name,
                     start.elapsed().as_secs()
                 );
-                println!("ret res");
                 res
             }
         }
@@ -308,7 +306,7 @@ impl Context {
 
             // Copy conf file to remote:
             //创建worker_config(config.toml)
-            Context::create_workers_config_file(address_ip, port + 1, conf_path)?;
+            Context::create_workers_config_file(address_ip, port, conf_path)?;
             let remote_path = format!("{}:{}/config.toml", address, job_work_dir_str);
             Command::new("scp")
                 .args(&["-i", key_path, conf_path, &remote_path])
@@ -561,16 +559,13 @@ impl Context {
         F: SerFunc(Box<dyn Iterator<Item = T>>) -> U,
     {
         let cl = Fn!(move |(_task_context, iter)| (func)(iter));
-        // println!("fn1");
         let func = Arc::new(cl);
-        // println!("fn2");
         self.scheduler.run_job(
             func,
             rdd.clone(),
             (0..rdd.number_of_splits()).collect(),
             false,
         )
-        // println!("fn3");
     }
 
     pub fn run_job_with_partitions<T: Data, U: Data, F, P>(

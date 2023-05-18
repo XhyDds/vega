@@ -219,12 +219,12 @@ impl Default for Configuration {
             std::env::temp_dir()
         };
 
-        // loggin config:
+        //loggin config:
         //设置log_level,log_cleanup
         //TOBE DONE
         let log_level = match config.log_level {
             Some(val) => val,
-            _ => LogLevel::Info,
+            _ => LogLevel::Debug,
         };
         let log_cleanup = match config.log_cleanup {
             Some(cond) => cond,
