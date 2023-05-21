@@ -10,6 +10,11 @@ use crate::serializable_traits::{Data, SerFunc};
 use crate::{Rdd, Result};
 use tokio::sync::Mutex;
 
+/**
+ * 结构体：Job
+ * 描述：Job是一个任务，它包含了run_id和job_id
+ * 排序是按倒序进行的
+ */
 #[derive(Clone, Debug)]
 pub(crate) struct Job {
     run_id: usize,
@@ -45,6 +50,23 @@ impl Ord for Job {
 
 type PendingTasks = BTreeMap<Stage, BTreeSet<Box<dyn TaskBase>>>;
 
+/**
+ * 结构体：JobTracker
+ * 描述：JobTracker包含了运行一个Job所需要的所有信息
+ * 成员：
+ * output_parts: Vec<usize>，输出分区的ID
+ * num_output_parts: usize，输出分区的数量
+ * final_stage: Stage，最终的Stage
+ * func: Arc<F>，函数
+ * final_rdd: Arc<dyn Rdd<Item = T>>，最终的RDD
+ * run_id: usize，运行ID
+ * waiting: Mutex<BTreeSet<Stage>>，等待的Stage
+ * running: Mutex<BTreeSet<Stage>>，正在运行的Stage
+ * failed: Mutex<BTreeSet<Stage>>，失败的Stage
+ * finished: Mutex<Vec<bool>>，不同Stage是否结束
+ * pending_tasks: Mutex<PendingTasks>，等待运行的Task
+ * listener: L，Job的监听器
+ */
 /// Contains all the necessary types to run and track a job progress
 pub(crate) struct JobTracker<F, U: Data, T: Data, L>
 where
@@ -67,6 +89,7 @@ where
     _marker_u: PhantomData<U>,
 }
 
+// 两种新建JobTracker的方式
 impl<F, U: Data, T: Data, L> JobTracker<F, U, T, L>
 where
     F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,

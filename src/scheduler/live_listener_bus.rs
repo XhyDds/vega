@@ -7,7 +7,13 @@ use crate::scheduler::listener::ListenerEvent;
 use crate::{Error, Result};
 use parking_lot::{Mutex, RwLock};
 
+/**
+ * 特性：AsyncEventQueue
+ * 描述：包含了异步事件队列的post, start, stop函数
+ * post为将事件放入队列
+ */
 trait AsyncEventQueue: Send + Sync {
+    // NOTE: 不知道此处的函数在哪里实现
     fn post(&mut self, event: Arc<dyn ListenerEvent>);
     fn start(&mut self);
     fn stop(&mut self);
@@ -15,6 +21,17 @@ trait AsyncEventQueue: Send + Sync {
 
 type QueueBuffer = Option<Arc<Mutex<Vec<Arc<dyn ListenerEvent>>>>>;
 
+/**
+ * 结构体：LiveListenerBus
+ * 描述：LiveListenerBus是一个异步的事件总线，它将SparkListenerEvents异步传递给注册的SparkListeners
+ * 直到调用start()之前，所有发布的事件都只是缓冲的。只有在此侦听器总线启动后，事件才会实际传播到所有附加的侦听器。
+ * 当调用stop()时，此侦听器总线将停止，并且在停止后将删除进一步的事件。
+ * 成员：
+ * started: Arc<AtomicBool>，表示是否调用了start()
+ * stopped: Arc<AtomicBool>，表示是否调用了stop()
+ * queued_events: QueueBuffer，等待事件队列
+ * queues: Arc<RwLock<Vec<Box<dyn AsyncEventQueue>>>>，异步事件队列
+ */
 /// Asynchronously passes SparkListenerEvents to registered SparkListeners.
 ///
 /// Until `start()` is called, all posted events are only buffered. Only after this listener bus
@@ -56,12 +73,14 @@ impl LiveListenerBus {
 
         match self.queued_events {
             None => {
+                // 代表已经被start，直接提交事件
                 // If the event buffer is null, it means the bus has been started and we can avoid
                 // synchronization and post events directly to the queues. This should be the most
                 // common case during the life of the bus.
                 self.post_to_queues(event);
             }
             Some(ref queue) => {
+                // 需要判断是否已被start
                 // Otherwise, need to synchronize to check whether the bus is started, to make sure the thread
                 // calling start() picks up the new event.
                 if !self.started.load(Ordering::SeqCst) {
@@ -87,10 +106,12 @@ impl LiveListenerBus {
     /// listens for any additional events asynchronously while the listener bus is still running.
     /// This should only be called once.
     pub fn start(&mut self) -> Result<()> {
+        // 如果还未开始，则将started置为true，否则返回Err
         if self.started.compare_and_swap(false, true, Ordering::SeqCst) {
             return Err(Error::Other);
         }
 
+        // 将queued_events中的事件全部提交到队列中
         let mut queues = self.queues.write();
         {
             let queued_events = self
@@ -113,14 +134,17 @@ impl LiveListenerBus {
     /// Stop the listener bus. It will wait until the queued events have been processed, but drop the
     /// new events after stopping.
     pub fn stop(&mut self) -> Result<()> {
+        // 如果还未开始，则返回Err
         if !self.started.load(Ordering::SeqCst) {
             return Err(Error::Other);
         }
 
+        // 如果已经停止，则返回Ok，否则将stopped置为true
         if !self.stopped.compare_and_swap(false, true, Ordering::SeqCst) {
             return Ok(());
         }
 
+        // 将所有队列停止且清空
         let mut queues = self.queues.write();
         for queue in queues.iter_mut() {
             queue.stop();

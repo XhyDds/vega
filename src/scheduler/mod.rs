@@ -29,6 +29,10 @@ pub(crate) use self::result_task::ResultTask;
 pub(crate) use self::task::TaskContext;
 pub(crate) use self::task::{Task, TaskBase, TaskOption, TaskResult};
 
+/**
+ * 特性：Scheduler
+ * 描述：调度器，包括了start、wait_for_register、run_job、stop、default_parallelism函数
+ */
 pub trait Scheduler {
     fn start(&self);
     fn wait_for_register(&self);
