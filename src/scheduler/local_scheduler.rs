@@ -24,6 +24,31 @@ use crate::{env, Result};
 use dashmap::DashMap;
 use parking_lot::Mutex;
 
+/**
+ * 结构体：LocalScheduler
+ * 描述：单机版的调度器
+ * 成员：
+ * max_failures: usize, 最大失败次数
+ * attempt_id: Arc<AtomicUsize>, 尝试id
+ * resubmit_timeout: u128, 重新提交超时时间
+ * poll_timeout: u64, 轮询超时时间
+ * event_queues: EventQueue, 事件队列
+ * stage_cache: Arc<DashMap<usize, Stage>>, stage缓存
+ * shuffle_to_map_stage: Arc<DashMap<usize, Stage>>, shuffle到map阶段
+ * cache_locs: Arc<DashMap<usize, Vec<Vec<Ipv4Addr>>>>, 缓存位置
+ * master: bool, 是否是master
+ * framework_name: String, 框架名称
+ * is_registered: bool, 是否已注册
+ * active_jobs: HashMap<usize, Job>, 活跃的job
+ * active_job_queue: Vec<Job>, 活跃的job队列
+ * taskid_to_jobid: HashMap<String, usize>, taskid到jobid的映射
+ * taskid_to_slaveid: HashMap<String, String>, taskid到slaveid的映射
+ * job_tasks: HashMap<usize, HashSet<String>>, job到task的映射
+ * slaves_with_executors: HashSet<String>, 有执行器的slave
+ * map_output_tracker: MapOutputTracker, map输出跟踪器
+ * scheduler_lock: Arc<Mutex<()>>, 调度器锁
+ * live_listener_bus: LiveListenerBus, 活跃的监听总线
+ */
 #[derive(Clone, Default)]
 pub(crate) struct LocalScheduler {
     max_failures: usize,
@@ -87,6 +112,8 @@ impl LocalScheduler {
 
     /// Run an approximate job on the given RDD and pass all the results to an ApproximateEvaluator
     /// as they arrive. Returns a partial result object from the evaluator.
+    /// 在给定的RDD上运行approximate job，并把结果传给approximateevaluator
+    /// 当结果到达时，返回一个来自evaluator的partial result对象
     pub fn run_approximate_job<T: Data, U: Data, R, F, E>(
         self: Arc<Self>,
         func: Arc<F>,

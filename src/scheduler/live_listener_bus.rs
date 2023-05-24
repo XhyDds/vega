@@ -13,7 +13,7 @@ use parking_lot::{Mutex, RwLock};
  * post为将事件放入队列
  */
 trait AsyncEventQueue: Send + Sync {
-    // 此处的函数在local_scheduler和base_scheduler实现
+    // NOTE: 此处的函数在哪里实现？
     fn post(&mut self, event: Arc<dyn ListenerEvent>);
     fn start(&mut self);
     fn stop(&mut self);

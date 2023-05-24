@@ -82,7 +82,7 @@ impl Stage {
         }
     }
 
-    // 父stage为空，且当前非shuffleMapStage则可进行
+    /// 父stage为空，且当前非shuffleMapStage则可进行
     pub fn is_available(&self) -> bool {
         if self.parents.is_empty() && !self.is_shuffle_map {
             true
