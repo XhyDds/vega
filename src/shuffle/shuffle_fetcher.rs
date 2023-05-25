@@ -88,18 +88,18 @@ impl ShuffleFetcher {
                         let data_bytes = {
                             let res = client.get(chunk_uri).await?;
                             hyper::body::to_bytes(res.into_body()).await
-                        }; //获取数据
+                        }; //通过http连接从服务器获取数据
                            //如果获取数据成功，则将其解析为(K, V)元组，并将它们添加到shuffle_chunks向量中。
                         if let Ok(bytes) = data_bytes {
                             let deser_data = bincode::deserialize::<Vec<(K, V)>>(&bytes.to_vec())?;
-                            shuffle_chunks.push(deser_data);
+                            shuffle_chunks.push(deser_data); //向shuffle_chunks装入deser_data
                         } else {
                             failure.store(true, atomic::Ordering::Release);
                             return Err(ShuffleError::FailedFetchOp);
                         }
                     }
                     Ok::<Box<dyn Iterator<Item = (K, V)> + Send>, _>(Box::new(
-                        shuffle_chunks.into_iter().flatten(), //deser_data
+                        shuffle_chunks.into_iter().flatten(), //flatten函数将多层嵌套的数组变成单层的普通数组（输入输出都是迭代器）
                     ))
                 } else {
                     Ok::<Box<dyn Iterator<Item = (K, V)> + Send>, _>(Box::new(std::iter::empty()))
@@ -114,7 +114,7 @@ impl ShuffleFetcher {
             |curr, res| {
                 if let Ok(mut curr) = curr {
                     if let Ok(Ok(res)) = res {
-                        curr.extend(res);
+                        curr.extend(res); //extend函数功能：将res迭代器指向的集合里每个元素按元素顺序附加到curr后面
                         Ok(curr)
                     } else {
                         Err(ShuffleError::FailedFetchOp)
@@ -123,7 +123,13 @@ impl ShuffleFetcher {
                     Err(ShuffleError::FailedFetchOp)
                 }
             },
-        )?;
+        )?; //此句功能是合并所有结果到curr这个Vec中
+            /* 注：fold函数原型为：fn fold<B, F>(self, init: B, f: F) -> B，它从左到右对数组里每个元素v应用init=f(init,v)
+            如此示例：以下代码是对数组求和：
+                let a = [1, 2, 3];
+                let sum = a.iter().fold(0, |acc, x| acc + x);
+                assert_eq!(sum, 6);
+             */
         Ok(results.into_iter())
     }
 
@@ -133,7 +139,10 @@ impl ShuffleFetcher {
         input_id: usize,
         reduce_id: usize,
     ) -> Result<Uri> {
-        //base -> base/input_id/reduce_id
+        /*
+        函数功能：按以下方式处理uri字符串
+        base -> base/input_id/reduce_id
+        */
         let input_id = input_id.to_string();
         let reduce_id = reduce_id.to_string();
         let path_tail = ["/".to_string(), input_id, "/".to_string(), reduce_id].concat();

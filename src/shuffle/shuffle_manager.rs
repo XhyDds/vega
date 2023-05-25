@@ -2,19 +2,19 @@ use std::convert::TryFrom;
 use std::fs;
 use std::net::{SocketAddr, TcpListener};
 use std::path::PathBuf;
-use std::task::{Context, Poll};
+use std::task::{Context, Poll}; //task：异步任务包
 use std::time::Duration;
 
 use crate::env;
 use crate::error::StdResult;
 use crate::shuffle::*;
 use crate::utils;
-use crossbeam::channel as cb_channel;
+use crossbeam::channel as cb_channel; //crossbeam：并发编程包
 use futures::future;
 use hyper::{
     client::Client, server::conn::AddrIncoming, service::Service, Body, Request, Response, Server,
     StatusCode, Uri,
-};
+}; //网络
 use uuid::Uuid;
 
 pub(crate) type Result<T> = StdResult<T, ShuffleError>;
@@ -26,13 +26,13 @@ pub(crate) struct ShuffleManager {
     shuffle_dir: PathBuf,
     server_uri: String,
     pub server_port: u16,
-    ask_status: cb_channel::Sender<()>,
+    ask_status: cb_channel::Sender<()>, //建立一个通信管道，包含sender和receiver
     rcv_status: cb_channel::Receiver<Result<StatusCode>>,
 }
 
 impl ShuffleManager {
     pub fn new() -> Result<Self> {
-        let shuffle_dir = ShuffleManager::get_shuffle_data_dir()?;
+        let shuffle_dir = ShuffleManager::get_shuffle_data_dir()?; //example: ns-shuffle-01907472-0411-4f48-9096-a1692772151b
         fs::create_dir_all(&shuffle_dir).map_err(|_| ShuffleError::CouldNotCreateShuffleDir)?;
         let shuffle_port = env::Configuration::get().shuffle_svc_port;
         let (server_uri, server_port) = ShuffleManager::start_server(shuffle_port)?;
@@ -65,19 +65,21 @@ impl ShuffleManager {
         input_id: usize,
         output_id: usize,
     ) -> StdResult<String, Box<dyn std::error::Error>> {
+        //函数功能：创建output文件并返回其路径
         let path = self
             .shuffle_dir
             .join(format!("{}/{}", shuffle_id, input_id));
-        fs::create_dir_all(&path)?;//创建路径！
+        fs::create_dir_all(&path)?; //创建路径！
         let file_path = path.join(format!("{}", output_id));
-        fs::File::create(&file_path)?;//创建文件
+        fs::File::create(&file_path)?; //创建文件
         Ok(file_path
             .to_str()
             .ok_or_else(|| ShuffleError::CouldNotCreateShuffleDir)?
-            .to_owned())//返回文件路径
+            .to_owned()) //返回文件路径
     }
 
     pub fn check_status(&self) -> Result<StatusCode> {
+        //检查通信channel的状态
         self.ask_status.send(()).unwrap();
         self.rcv_status.recv().map_err(|_| ShuffleError::Other)?
     }
@@ -89,8 +91,8 @@ impl ShuffleManager {
             let conn = TcpListener::bind(SocketAddr::from((bind_ip, bind_port))).map_err(|_| {
                 let err: ShuffleError = crate::NetworkError::FreePortNotFound(bind_port, 0).into();
                 err
-            })?;
-            ShuffleManager::launch_async_server(conn)?;
+            })?; //创建监听端口，再由for stream in listener.incoming()即可获取监听到的输入
+            ShuffleManager::launch_async_server(conn)?; //注：这个是自定义函数（见下）
             bind_port
         } else {
             let (conn, bind_port) = crate::utils::get_free_connection(bind_ip)?;
@@ -103,7 +105,7 @@ impl ShuffleManager {
     }
 
     fn launch_async_server(conn: TcpListener) -> Result<()> {
-        let (s, r) = cb_channel::bounded::<Result<()>>(1);
+        let (s, r) = cb_channel::bounded::<Result<()>>(1); //bounded: Creates a channel of bounded capacity.
         tokio::spawn(async move {
             Server::from_tcp(conn)?.serve(ShuffleSvcMaker).await?;
             s.send(Err(ShuffleError::FailedToStart)).unwrap();
@@ -149,7 +151,8 @@ impl ShuffleManager {
     }
 
     fn get_shuffle_data_dir() -> Result<PathBuf> {
-        let local_dir_root = &env::Configuration::get().local_dir;
+        //函数功能：尝试至多十遍来建立shuffle文件，成功则返回创建文件的路径，若10次都重名则报错
+        let local_dir_root = &env::Configuration::get().local_dir; // 好像是/tmp/
         for _ in 0..10 {
             let local_dir =
                 local_dir_root.join(format!("ns-shuffle-{}", Uuid::new_v4().to_string()));
@@ -188,6 +191,7 @@ impl ShuffleService {
     }
 
     fn get_cached_data(&self, uri: &Uri, parts: &[&str]) -> Result<Vec<u8>> {
+        //函数功能：按照给定路径及shuffle_id等编号，从SHUFFLE_CACHE中读出数据（u8字符串）
         // the path is: .../{shuffleid}/{inputid}/{reduceid}
         let parts: Vec<_> = match parts
             .iter()
