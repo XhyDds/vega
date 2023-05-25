@@ -22,6 +22,7 @@ pub(crate) type EventQueue = Arc<DashMap<usize, VecDeque<CompletionEvent>>>;
 #[async_trait::async_trait]
 pub(crate) trait NativeScheduler: Send + Sync {
     /// Fast path for execution. Runs the DD in the driver main thread if possible.
+    /// 在本地运行，若最后的stage无父stage，且有单个输出分区，则在driver主线程中运行
     fn local_execution<T: Data, U: Data, F, L>(
         jt: Arc<JobTracker<F, U, T, L>>,
     ) -> Result<Option<Vec<U>>>
@@ -47,10 +48,12 @@ pub(crate) trait NativeScheduler: Send + Sync {
         shuffle_dependency: Option<Arc<dyn ShuffleDependencyTrait>>,
     ) -> Result<Stage> {
         log::debug!("creating new stage");
+        // 注册rdd到cache_tracker
         env::Env::get()
             .cache_tracker
             .register_rdd(rdd_base.get_rdd_id(), rdd_base.number_of_splits())
             .await?;
+        // 注册shuffle
         if let Some(dep) = shuffle_dependency.clone() {
             log::debug!("shuffle dependency exists, registering to map output tracker");
             self.register_shuffle(dep.get_shuffle_id(), rdd_base.number_of_splits());
@@ -64,12 +67,14 @@ pub(crate) trait NativeScheduler: Send + Sync {
             shuffle_dependency,
             self.get_parent_stages(rdd_base).await?,
         );
-        println!("stage is built");
+        log::debug!("stage is built");
         self.insert_into_stage_cache(id, stage.clone());
         log::debug!("returning new stage #{}", id);
         Ok(stage)
     }
 
+    /// 递归函数
+    /// visited中没有rdd的时候需要将rdd加入到visited里面，否则不进行任何操作
     async fn visit_for_missing_parent_stages<'s, 'a: 's>(
         &'s self,
         missing: &'a mut BTreeSet<Stage>,
@@ -88,12 +93,14 @@ pub(crate) trait NativeScheduler: Send + Sync {
             visited.insert(rdd.clone());
             // TODO: CacheTracker register
             for _ in 0..rdd.number_of_splits() {
+                // 仅当rdd找不到loc时候进行之后的操作
                 let locs = self.get_cache_locs(rdd.clone());
                 log::debug!("cache locs: {:?}", locs);
                 if locs == None {
                     for dep in rdd.get_dependencies() {
                         log::debug!("for dep in missing stages ");
                         match dep {
+                            // 此处处理
                             Dependency::ShuffleDependency(shuf_dep) => {
                                 let stage = self.get_shuffle_map_stage(shuf_dep.clone()).await?;
                                 log::debug!("shuffle stage #{} in missing stages", stage.id);
@@ -105,6 +112,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                                     missing.insert(stage);
                                 }
                             }
+                            // 此处递归
                             Dependency::NarrowDependency(nar_dep) => {
                                 log::debug!("narrow stage in missing stages");
                                 self.visit_for_missing_parent_stages(
@@ -122,6 +130,8 @@ pub(crate) trait NativeScheduler: Send + Sync {
         Ok(())
     }
 
+    /// 递归函数
+    /// visited中没有rdd的时候将rdd加入到parents里面，否则不进行任何操作
     async fn visit_for_parent_stages<'s, 'a: 's>(
         &'s self,
         parents: &'a mut BTreeSet<Stage>,
@@ -137,7 +147,9 @@ pub(crate) trait NativeScheduler: Send + Sync {
             visited.iter().map(|x| x.get_rdd_id()).collect::<Vec<_>>()
         );
         if !visited.contains(&rdd) {
+            // 仅在visited中没有rdd的时候进行之后的操作
             visited.insert(rdd.clone());
+            // 将rdd注册到cache_tracker
             env::Env::get()
                 .cache_tracker
                 .register_rdd(rdd.get_rdd_id(), rdd.number_of_splits())
@@ -145,9 +157,11 @@ pub(crate) trait NativeScheduler: Send + Sync {
             for dep in rdd.get_dependencies() {
                 match dep {
                     Dependency::ShuffleDependency(shuf_dep) => {
+                        // shuffle依赖就插入到parents中
                         parents.insert(self.get_shuffle_map_stage(shuf_dep.clone()).await?);
                     }
                     Dependency::NarrowDependency(nar_dep) => {
+                        // 如果是窄依赖就递归
                         self.visit_for_parent_stages(parents, visited, nar_dep.get_rdd_base())
                             .await?;
                     }
@@ -157,6 +171,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         Ok(())
     }
 
+    /// 利用visit_for_parent_stages获取rdd的parents
     async fn get_parent_stages(&self, rdd: Arc<dyn RddBase>) -> Result<Vec<Stage>> {
         log::debug!("inside get parent stages");
         let mut parents: BTreeSet<Stage> = BTreeSet::new();
@@ -170,6 +185,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         Ok(parents.into_iter().collect())
     }
 
+    /// 失败时的处理
     async fn on_event_failure<T: Data, U: Data, F, L>(
         &self,
         jt: Arc<JobTracker<F, U, T, L>>,
@@ -189,6 +205,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         // TODO: mapoutput tracker needs to be finished for this
         // let failed_stage = self.id_to_stage.lock().get(&stage_id).?.clone();
         let failed_stage = self.fetch_from_stage_cache(stage_id);
+        // 从running中移除失败的stage，并加入到failed中
         jt.running.lock().await.remove(&failed_stage);
         jt.failed.lock().await.insert(failed_stage);
         // TODO: logging
@@ -200,6 +217,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
             .insert(self.fetch_from_shuffle_to_cache(shuffle_id));
     }
 
+    /// 成功时的处理
     async fn on_event_success<T: Data, U: Data, F, L>(
         &self,
         mut completed_event: CompletionEvent,
@@ -219,6 +237,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
             .downcast_ref::<ResultTask<T, U, F>>()
             .is_some();
         if result_type {
+            // 如果完成的event的task是resultTask类型，则将result存入results，且将jt标志为已完成，num_finished增加1
             if let Ok(rt) = completed_event.task.downcast::<ResultTask<T, U, F>>() {
                 let any_result = completed_event.result.take().ok_or_else(|| Error::Other)?;
                 jt.listener
@@ -236,6 +255,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 *num_finished += 1;
             }
         } else if let Ok(smt) = completed_event.task.downcast::<ShuffleMapTask>() {
+            // 此处为非resultTask类型，即为shuffleMapTask类型
             let shuffle_server_uri = completed_event
                 .result
                 .take()
@@ -250,7 +270,9 @@ pub(crate) trait NativeScheduler: Send + Sync {
             );
             self.add_output_loc_to_stage(smt.stage_id, smt.partition, shuffle_server_uri);
 
+            // 从缓存获取stage
             let stage = self.fetch_from_stage_cache(smt.stage_id);
+            // 一些log
             log::debug!(
                 "pending stages: {:?}",
                 jt.pending_tasks
@@ -299,10 +321,13 @@ pub(crate) trait NativeScheduler: Send + Sync {
                     .ok_or_else(|| Error::Other)?
                     .is_empty()
             {
+                // 如果stage在running中，且pending_tasks中的stage为空
                 log::debug!("started registering map outputs");
                 // TODO: logging
+                // 将stage移除running
                 jt.running.lock().await.remove(&stage);
                 if let Some(dep) = stage.shuffle_dependency {
+                    // 如果stage有shuffle依赖，则将stage的output_locs中的第一个元素取出，作为locs
                     log::debug!(
                         "stage output locs before register mapoutput tracker: {:?}",
                         stage.output_locs
@@ -313,11 +338,15 @@ pub(crate) trait NativeScheduler: Send + Sync {
                         .map(|x| x.get(0).map(|s| s.to_owned()))
                         .collect();
                     log::debug!("locs for shuffle id #{}: {:?}", dep.get_shuffle_id(), locs);
+                    // 将locs注册到mapOutputTracker中
                     self.register_map_outputs(dep.get_shuffle_id(), locs);
                     log::debug!("finished registering map outputs");
                 }
                 // TODO: Cache
+                // 更新缓存
                 self.update_cache_locs().await?;
+
+                // 从waiting中的stage获取新的runnable
                 let mut newly_runnable = Vec::new();
                 let waiting_stages: Vec<_> = jt.waiting.lock().await.iter().cloned().collect();
                 for stage in waiting_stages {
@@ -328,6 +357,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                         missing_stages.iter().map(|x| x.id).collect::<Vec<_>>()
                     );
                     if missing_stages.iter().next().is_none() {
+                        // 如果stage的parent stages都已经完成，则将stage加入newly_runnable
                         newly_runnable.push(stage.clone())
                     }
                 }
@@ -345,6 +375,9 @@ pub(crate) trait NativeScheduler: Send + Sync {
         Ok(())
     }
 
+    /// 递归函数
+    /// 提交stage
+    /// 如果stage不在waiting和running中，将stage加入到waiting中
     async fn submit_stage<T: Data, U: Data, F, L>(
         &self,
         stage: Stage,
@@ -363,10 +396,13 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 missing.iter().map(|x| x.id).collect::<Vec<_>>()
             );
             if missing.is_empty() {
+                // 没有缺失，直接提交
                 self.submit_missing_tasks(stage.clone(), jt.clone()).await?;
                 jt.running.lock().await.insert(stage);
             } else {
+                // 有缺失，将parent提交之后再提交
                 for parent in missing {
+                    // 递归
                     self.submit_stage(parent, jt.clone()).await?;
                 }
                 jt.waiting.lock().await.insert(stage);
@@ -375,6 +411,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         Ok(())
     }
 
+    /// 提交没有parent的task
     async fn submit_missing_tasks<T: Data, U: Data, F, L>(
         &self,
         stage: Stage,
@@ -385,10 +422,12 @@ pub(crate) trait NativeScheduler: Send + Sync {
         L: JobListener,
     {
         let mut pending_tasks = jt.pending_tasks.lock().await;
+        // 从pending_tasks中获取stage对应的值，如果为空，则插入空的BTreeSet
         let my_pending = pending_tasks
             .entry(stage.clone())
             .or_insert_with(BTreeSet::new);
         if stage == jt.final_stage {
+            // 如果是final stage
             log::debug!("final stage #{}", stage.id);
             for (id_in_job, (id, part)) in jt
                 .output_parts
@@ -397,6 +436,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 .take(jt.num_output_parts)
                 .enumerate()
             {
+                // 生成ResultTask并提交
                 let locs = self.get_preferred_locs(jt.final_rdd.get_rdd_base(), *part);
                 let result_task = ResultTask::new(
                     self.get_next_task_id(),
@@ -418,9 +458,11 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 )
             }
         } else {
+            // 非finalstage
             for p in 0..stage.num_partitions {
                 log::debug!("shuffle stage #{}", stage.id);
                 if stage.output_locs[p].is_empty() {
+                    // 仅在对应输出位置为空时，才创建shuffleMapTask并提交
                     let locs = self.get_preferred_locs(stage.get_rdd(), p);
                     log::debug!("creating task for stage #{} partition #{}", stage.id, p);
                     let shuffle_map_task = ShuffleMapTask::new(
@@ -455,19 +497,26 @@ pub(crate) trait NativeScheduler: Send + Sync {
         Ok(())
     }
 
+    /// 等待事件
     fn wait_for_event(&self, run_id: usize, timeout: u64) -> Option<CompletionEvent> {
         // TODO: make use of async to wait for events
         let end = Instant::now() + Duration::from_millis(timeout);
+        // 直到get_event_queue里有run_id对应的事件时结束循环
         while self.get_event_queue().get(&run_id)?.is_empty() {
             if Instant::now() > end {
+                // 超时，没等到
                 return None;
             } else {
                 thread::sleep(end - Instant::now());
             }
         }
+        // 等到了
         self.get_event_queue().get_mut(&run_id)?.pop_front()
     }
 
+    // NOTE: 这里无标注的函数通过下方的macro_rules!宏实现
+
+    /// 在distributed_scheduler和local_scheduler中实现
     fn submit_task<T: Data, U: Data, F>(
         &self,
         task: TaskOption,
@@ -479,10 +528,11 @@ pub(crate) trait NativeScheduler: Send + Sync {
     // mutators:
     fn add_output_loc_to_stage(&self, stage_id: usize, partition: usize, host: String);
     fn insert_into_stage_cache(&self, id: usize, stage: Stage);
-    /// refreshes cache locations
+    // refreshes cache locations
     fn register_shuffle(&self, shuffle_id: usize, num_maps: usize);
     fn register_map_outputs(&self, shuffle_id: usize, locs: Vec<Option<String>>);
     fn remove_output_loc_from_stage(&self, shuffle_id: usize, map_id: usize, server_uri: &str);
+    /// 在distributed_scheduler和local_scheduler中实现
     async fn update_cache_locs(&self) -> Result<()>;
     fn unregister_map_output(&self, shuffle_id: usize, map_id: usize, server_uri: String);
 
@@ -491,24 +541,30 @@ pub(crate) trait NativeScheduler: Send + Sync {
     fn fetch_from_shuffle_to_cache(&self, id: usize) -> Stage;
     fn get_cache_locs(&self, rdd: Arc<dyn RddBase>) -> Option<Vec<Vec<Ipv4Addr>>>;
     fn get_event_queue(&self) -> &Arc<DashMap<usize, VecDeque<CompletionEvent>>>;
+    /// 在distributed_scheduler和local_scheduler中实现
     async fn get_missing_parent_stages<'a>(&'a self, stage: Stage) -> Result<Vec<Stage>>;
     fn get_next_job_id(&self) -> usize;
     fn get_next_stage_id(&self) -> usize;
     fn get_next_task_id(&self) -> usize;
+    /// 在distributed_scheduler和local_scheduler中实现
     fn next_executor_server(&self, rdd: &dyn TaskBase) -> SocketAddrV4;
 
+    /// 获取比较适合的位置
     fn get_preferred_locs(&self, rdd: Arc<dyn RddBase>, partition: usize) -> Vec<Ipv4Addr> {
         // TODO: have to implement this completely
         if let Some(cached) = self.get_cache_locs(rdd.clone()) {
+            // 如果有缓存，直接返回
             if let Some(cached) = cached.get(partition) {
                 return cached.clone();
             }
         }
         let rdd_prefs = rdd.preferred_locations(rdd.splits()[partition].clone());
         if !rdd.is_pinned() {
+            // rdd没有被pin住
             if !rdd_prefs.is_empty() {
                 return rdd_prefs;
             }
+            // rdd_prefs为空，尝试从依赖中获取
             for dep in rdd.get_dependencies().iter() {
                 if let Dependency::NarrowDependency(nar_dep) = dep {
                     for in_part in nar_dep.get_parents(partition) {
@@ -521,6 +577,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
             }
             Vec::new()
         } else {
+            // rdd被pin住了，返回preferred_locations
             // when pinned, is required that there is exactly one preferred location
             // for a given partition
             assert!(rdd_prefs.len() == 1);
@@ -528,6 +585,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         }
     }
 
+    /// 在distributed_scheduler和local_scheduler中实现
     async fn get_shuffle_map_stage(&self, shuf: Arc<dyn ShuffleDependencyTrait>) -> Result<Stage>;
 }
 

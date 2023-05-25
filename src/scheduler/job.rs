@@ -13,7 +13,7 @@ use tokio::sync::Mutex;
 /**
  * 结构体：Job
  * 描述：Job是一个任务，它包含了run_id和job_id
- * 排序是按倒序进行的
+ * 排序是按job_ic降序进行的
  */
 #[derive(Clone, Debug)]
 pub(crate) struct Job {
