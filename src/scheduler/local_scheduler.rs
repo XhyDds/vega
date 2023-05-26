@@ -169,7 +169,7 @@ impl LocalScheduler {
         })
     }
 
-    // 处理方式类似于run_approximate_job
+    /// 处理方式类似于run_approximate_job
     pub fn run_job<T: Data, U: Data, F>(
         self: Arc<Self>,
         func: Arc<F>,
@@ -202,7 +202,7 @@ impl LocalScheduler {
     }
 
     /// Start the event processing loop for a given job.
-    /// 循环处理给定的job
+    /// 循环处理给定的job (由jobtracker表示)
     async fn event_process_loop<T: Data, U: Data, F, L>(
         self: Arc<Self>,
         allow_local: bool,
@@ -373,6 +373,7 @@ impl LocalScheduler {
 #[async_trait::async_trait]
 impl NativeScheduler for LocalScheduler {
     /// Every single task is run in the local thread pool
+    /// 提交task，在本地运行
     fn submit_task<T: Data, U: Data, F>(
         &self,
         task: TaskOption,
@@ -391,11 +392,15 @@ impl NativeScheduler for LocalScheduler {
         });
     }
 
+    /// 获取下一个executor的地址
+    /// 对于local来说就是LOCALHOST 127.0.0.1:0
     fn next_executor_server(&self, _rdd: &dyn TaskBase) -> SocketAddrV4 {
         // Just point to the localhost
         SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0)
     }
 
+    /// 更新cache_locs
+    /// 清空原有的，加入cache_tracker里的
     async fn update_cache_locs(&self) -> Result<()> {
         self.cache_locs.clear();
         env::Env::get()
@@ -409,6 +414,9 @@ impl NativeScheduler for LocalScheduler {
         Ok(())
     }
 
+    /// 由shuffle获取shuffle_map_stage
+    /// 如果可以在shuffle_to_map_stage里面找到，则返回
+    /// 否则创建新的stage
     async fn get_shuffle_map_stage(&self, shuf: Arc<dyn ShuffleDependencyTrait>) -> Result<Stage> {
         log::debug!("getting shuffle map stage");
         let stage = self.shuffle_to_map_stage.get(&shuf.get_shuffle_id());
@@ -427,6 +435,8 @@ impl NativeScheduler for LocalScheduler {
         }
     }
 
+    /// 从stage获取missing的parent
+    /// NOTE: 待确认
     async fn get_missing_parent_stages(&'_ self, stage: Stage) -> Result<Vec<Stage>> {
         log::debug!("getting missing parent stages");
         let mut missing: BTreeSet<Stage> = BTreeSet::new();
