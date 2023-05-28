@@ -15,6 +15,8 @@ use crate::split::Split;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
+
+/// 定义这个类是为了实现Split trait，这个特性是自定义的，用来
 struct ShuffledRddSplit {
     index: usize,
 }
