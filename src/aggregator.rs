@@ -3,7 +3,10 @@ use crate::Fn;
 use serde_derive::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
-// Aggregator for shuffle tasks.
+/** Aggregator for shuffle tasks.
+* 这个Aggregator主要就是拿来装三个函数，用于处理Vec：
+* 一个初始化函数，一个append函数，和一个拼接两Vec的函数
+*/
 #[derive(Serialize, Deserialize)]
 pub struct Aggregator<K: Data, V: Data, C: Data> {
     #[serde(with = "serde_traitobject")]
@@ -37,13 +40,15 @@ impl<K: Data, V: Data> Default for Aggregator<K, V, Vec<V>> {
             let (mut buf, v) = mv;
             buf.push(v);
             buf
-        })); //Vec<V>.push(V)
-        let create_combiner = Box::new(Fn!(|v: V| vec![v])); //return vec![v]
+        })); //往Vec里面添加值v，调用Vec<V>.push(V)
+
+        let create_combiner = Box::new(Fn!(|v: V| vec![v])); //初始化，返回 vec![v]
+
         let merge_combiners = Box::new(Fn!(|mc: (Vec<V>, Vec<V>)| {
             let (mut b1, mut b2) = mc;
             b1.append(&mut b2);
             b1
-        })); //combine two Vec<V>
+        })); //把两个Vec<V>拼起来并返回
         Aggregator {
             create_combiner,
             merge_value,

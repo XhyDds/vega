@@ -6,6 +6,7 @@ use thiserror::Error;
 pub type Result<T> = std::result::Result<T, Error>;
 pub type StdResult<T, E> = std::result::Result<T, E>;
 
+/// 定义错误类型
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]
@@ -113,7 +114,7 @@ impl Error {
         }
     }
 }
-
+/// 定义网络错误类型
 #[derive(Debug, Error)]
 pub enum NetworkError {
     #[error("disconnected from address")]
