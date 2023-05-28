@@ -2,7 +2,7 @@ use std::time::Instant;
 
 pub(super) trait ListenerEvent: Send + Sync {
     /// Whether output this event to the event log.
-    // TODO: 是否需要判断？
+    // TODO: 可考虑是否需要判断？
     fn log_event(&self) -> bool {
         true
     }

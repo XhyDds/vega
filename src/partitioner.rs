@@ -8,6 +8,9 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
 /// Partitioner trait for creating Rdd partitions
+/// equals->bool
+/// get_num_of_partitions->usize
+/// get_partition->usize
 pub trait Partitioner:
     Downcast + Send + Sync + dyn_clone::DynClone + Serialize + Deserialize
 {

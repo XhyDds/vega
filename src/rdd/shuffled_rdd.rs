@@ -26,7 +26,7 @@ impl ShuffledRddSplit {
         ShuffledRddSplit { index }
     }
 }
-
+///Split只有一个get_index函数，作用就是获取当前的index
 impl Split for ShuffledRddSplit {
     fn get_index(&self) -> usize {
         self.index
@@ -67,12 +67,12 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffledRdd<K, V, C> {
         let shuffle_id = ctx.new_shuffle_id();
         let mut vals = RddVals::new(ctx);
 
-        vals.dependencies
+        vals.dependencies//添加新的依赖
             .push(Dependency::ShuffleDependency(Arc::new(
                 ShuffleDependency::new(
-                    shuffle_id,
+                    shuffle_id,//id是请求新增的id
                     false,
-                    parent.get_rdd_base(),
+                    parent.get_rdd_base(),//父依赖的Rddbase
                     aggregator.clone(),
                     part.clone(),
                 ),
@@ -151,11 +151,12 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> Rdd for ShuffledRdd<K, V, C> {
     fn compute(&self, split: Box<dyn Split>) -> Result<Box<dyn Iterator<Item = Self::Item>>> {
         log::debug!("compute inside shuffled rdd");
         let start = Instant::now();
-
+        //fetch是一个async函数，调用结果是一个fut，<k,v>是URL和INDEX
         let fut = ShuffleFetcher::fetch::<K, C>(self.shuffle_id, split.get_index());
         let mut combiners: HashMap<K, Option<C>> = HashMap::new();
-        for (k, c) in futures::executor::block_on(fut)?.into_iter() {
-            if let Some(old_c) = combiners.get_mut(&k) {
+        for (k, c) in futures::executor::block_on(fut)?.into_iter() {//异步执行
+            //若键已存在，就使用aggreator的merge_comboners.call来合并，否则就以新键插入这个值
+            if let Some(old_c) = combiners.get_mut(&k) {//get_mut:Returns a mutable reference to the value corresponding to the key.
                 let old = old_c.take().unwrap();
                 let input = ((old, c),);
                 let output = self.aggregator.merge_combiners.call(input);
