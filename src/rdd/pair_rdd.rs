@@ -71,7 +71,7 @@ pub trait PairRdd<K: Data + Eq + Hash, V: Data>: Rdd<Item = (K, V)> + Send + Syn
         F: SerFunc((V, V)) -> V,
         Self: Sized + Serialize + Deserialize + 'static,
     {
-        let create_combiner = Box::new(Fn!(|v: V| v));
+        let create_combiner = Box::new(Fn!(|v: V| v));//简单回传聚合
         let f_clone = func.clone();
         let merge_value = Box::new(Fn!(move |(buf, v)| (f_clone)((buf, v))));
         let merge_combiners = Box::new(Fn!(move |(b1, b2)| (func)((b1, b2))));
@@ -119,7 +119,11 @@ pub trait PairRdd<K: Data + Eq + Hash, V: Data>: Rdd<Item = (K, V)> + Send + Syn
         )
         .flat_map_values(Box::new(f))
     }
-
+    /*
+    CoGroupRDD 是一个键值对 RDD，它将多个共享同一个键的 RDD 进行分组。
+    CoGroupRDD 与 groupByKey 的区别在于，它可以对多个 RDD 进行分组，而不仅仅是两个 RDD。
+    当您需要将多个 RDD 按键进行分组时，可以使用 cogroup。
+     */
     fn cogroup<W: Data>(
         &self,
         other: SerArc<dyn Rdd<Item = (K, W)>>,

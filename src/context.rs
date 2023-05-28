@@ -550,7 +550,7 @@ impl Context {
         config.make_reader(self.clone(), func)
     }
 
-    pub fn run_job<T: Data, U: Data, F>(
+    pub fn run_job<T: Data, U: Data, F>(//对给定的RDD进行F操作
         self: &Arc<Self>,
         rdd: Arc<dyn Rdd<Item = T>>,
         func: F,

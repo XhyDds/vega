@@ -68,7 +68,7 @@ pub struct CoGroupedRdd<K: Data> {
     pub(crate) rdds: Vec<SerArc<dyn RddBase>>,
     #[serde(with = "serde_traitobject")]
     pub(crate) part: Box<dyn Partitioner>,
-    _marker: PhantomData<K>,
+    _marker: PhantomData<K>,//PhandomData没有实际内容，仅起标志作用
 }
 
 impl<K: Data + Eq + Hash> CoGroupedRdd<K> {

@@ -201,6 +201,7 @@ impl Default for Configuration {
         }
 
         // get config from env vars:
+        //加载所有的环境变量
         let config = envy::prefixed(ENV_VAR_PREFIX)
             .from_env::<EnvConfig>()
             .unwrap();
