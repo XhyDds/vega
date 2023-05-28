@@ -23,7 +23,7 @@ key = "slave2 对应的ssh私钥"
 **ssh设置**
 在master下运行命令`ssh-keygen`（注意：询问“Enter file in which to save the key”时，输入期望的地址及合适的密钥名）将该密钥对中的私钥的地址同步到hosts.conf文件中。将公钥复值到期望连接的slave的目录"~/.ssh/"下，并将公钥中的内容复制添加到文件"~/.ssh/authorized_keys"中（如果没有该文件，则新建文件）。
 下面进行权限的设置：
-在slave的"~/.shh/"目录下运行命令：
+在master的"~/.ssh/"目录下运行命令：
 ```
 > chmod 600 私钥名
 //（示例中为chmod 600 brc_rsa）
