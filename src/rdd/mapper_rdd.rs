@@ -47,6 +47,9 @@ impl<T: Data, U: Data, F> MapperRdd<T, U, F>
 where
     F: SerFunc(T) -> U,
 {
+    /// mapper_rdd的构造函数
+    /// 接受rdd数据和函数f
+    /// 返回
     pub(crate) fn new(prev: Arc<dyn Rdd<Item = T>>, f: F) -> Self {
         let mut vals = RddVals::new(prev.get_context());
         vals.dependencies

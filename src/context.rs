@@ -534,7 +534,7 @@ impl Context {
          * 此外，Serde还提供了derive macro来
          * 为你自己定义的数据类型提供序列化和反序列化的实现
          * 包含JSON,Pickle,URL,TOML等 */
-        //将由context,data,num_slices创建的ParallelCollection序列化为Arc，作为rdd，并返回
+        //将由context,data,num_slices创建的ParallelCollection序列化为Arc(方便在executor间传递，功能：rdd)，并返回
         SerArc::new(ParallelCollection::new(self.clone(), seq, num_slices))
     }
 
