@@ -8,6 +8,7 @@ use serde_derive::Deserialize;
 static HOSTS: OnceCell<Hosts> = OnceCell::new();
 
 /// Handles loading of the hosts configuration.
+/// hosts.conf文件的导入与配置
 #[derive(Debug, Deserialize)]
 pub(crate) struct Hosts {
     pub master: SocketAddr,
@@ -40,7 +41,6 @@ impl Hosts {
         })?;
         // //TEST
         // println!("there1");
-        // let result=
         toml::from_str(&s).map_err(|e| Error::ParseHosts {
             source: e,
             path: path.as_ref().into(),
@@ -52,11 +52,14 @@ impl Hosts {
     }
 }
 
+/// cargo test
+/// 判断hosts.conf文件是否存在以及合法性
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::io::Write;
 
+    //是否存在
     #[test]
     fn test_missing_hosts_file() {
         match Hosts::load_from("/does_not_exist").unwrap_err() {
@@ -65,6 +68,7 @@ mod tests {
         }
     }
 
+    //合法性
     #[test]
     fn test_invalid_hosts_file() {
         let (mut file, path) = tempfile::NamedTempFile::new().unwrap().keep().unwrap();
