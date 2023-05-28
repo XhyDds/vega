@@ -215,6 +215,9 @@ pub trait Rdd: RddBase + 'static {
         SerArc::new(MapPartitionsRdd::new(self.get_rdd(), filter_fn))
     }
 
+    /// map函数
+    /// 对rdd进行map操作
+    /// 接受一个函数f作为参数，将这个函数应用到每一个元素上，并将结果返回为一个新的RDD
     fn map<U: Data, F>(&self, f: F) -> SerArc<dyn Rdd<Item = U>>
     where
         F: SerFunc(Self::Item) -> U,
@@ -242,7 +245,9 @@ pub trait Rdd: RddBase + 'static {
     {
         let ignore_idx = Fn!(move |_index: usize,
                                    items: Box<dyn Iterator<Item = Self::Item>>|
-              -> Box<dyn Iterator<Item = _>> { return (func)(items); });
+              -> Box<dyn Iterator<Item = _>> {
+            return (func)(items);
+        });
         SerArc::new(MapPartitionsRdd::new(self.get_rdd(), ignore_idx))
     }
 
@@ -455,15 +460,15 @@ pub trait Rdd: RddBase + 'static {
     {
         let cl =
             Fn!(|iter: Box<dyn Iterator<Item = Self::Item>>| iter.collect::<Vec<Self::Item>>());
-            //Fn!是用于产生Rust闭包的宏，其中使用proc_macro
-            /*
-                proc_macro::TokenStream 是Rust 标准库中的一个类型，它表示一个编译器插件的输出。
-                它可以包含任意数量的 Rust 代码，这些代码可以被编译器用于生成最终的可执行文件或库。
-                使用 proc_macro::TokenStream，您可以编写自定义的编译器
-             */
+        //Fn!是用于产生Rust闭包的宏，其中使用proc_macro
+        /*
+           proc_macro::TokenStream 是Rust 标准库中的一个类型，它表示一个编译器插件的输出。
+           它可以包含任意数量的 Rust 代码，这些代码可以被编译器用于生成最终的可执行文件或库。
+           使用 proc_macro::TokenStream，您可以编写自定义的编译器
+        */
         let _results = self.get_context();
-        let rd=self.get_rdd();
-        let results=_results.run_job(rd, cl)?;
+        let rd = self.get_rdd();
+        let results = _results.run_job(rd, cl)?;
         let size = results.iter().fold(0, |a, b: &Vec<Self::Item>| a + b.len());
         Ok(results
             .into_iter()
@@ -1084,11 +1089,12 @@ pub trait Rdd: RddBase + 'static {
         };
         assert!(0.0 <= confidence && confidence <= 1.0);
 
-        let count_elements = Fn!(|(_ctx, iter): (
-            TaskContext,
-            Box<dyn Iterator<Item = Self::Item>>
-        )|
-         -> usize { return iter.count(); });
+        let count_elements =
+            Fn!(
+                |(_ctx, iter): (TaskContext, Box<dyn Iterator<Item = Self::Item>>)| -> usize {
+                    return iter.count();
+                }
+            );
 
         let evaluator = CountEvaluator::new(self.number_of_splits(), confidence);
         let rdd = self.get_rdd();
