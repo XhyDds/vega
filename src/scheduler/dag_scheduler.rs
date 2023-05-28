@@ -36,7 +36,7 @@ pub struct FetchFailedVals {
 // Have to redesign this because serializing the Send, Sync traits is not such a good idea.
 pub struct CompletionEvent {
     pub task: Box<dyn TaskBase>,
-    pub reason: TastEndReason, // TODO: 此处应改为TaskEndReason
+    pub reason: TastEndReason, // FIXME: 此处应改为TaskEndReason
     pub result: Option<Box<dyn AnyData>>,
     pub accum_updates: HashMap<i64, Box<dyn Any + Send + Sync>>,
 }

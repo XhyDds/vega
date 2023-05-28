@@ -208,7 +208,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         // 从running中移除失败的stage，并加入到failed中
         jt.running.lock().await.remove(&failed_stage);
         jt.failed.lock().await.insert(failed_stage);
-        // TODO: logging
+        // FIXME: logging
         self.remove_output_loc_from_stage(shuffle_id, map_id, &server_uri);
         self.unregister_map_output(shuffle_id, map_id, server_uri);
         jt.failed
@@ -229,7 +229,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
         L: JobListener,
     {
-        // TODO: logging
+        // FIXME: logging
         // TODO: add to Accumulator
 
         let result_type = completed_event
@@ -323,7 +323,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
             {
                 // 如果stage在running中，且pending_tasks中的stage为空
                 log::debug!("started registering map outputs");
-                // TODO: logging
+                // FIXME: logging
                 // 将stage移除running
                 jt.running.lock().await.remove(&stage);
                 if let Some(dep) = stage.shuffle_dependency {
@@ -499,7 +499,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
 
     /// 等待事件
     fn wait_for_event(&self, run_id: usize, timeout: u64) -> Option<CompletionEvent> {
-        // TODO: make use of async to wait for events
+        // TODO: 可考虑make use of async to wait for events
         let end = Instant::now() + Duration::from_millis(timeout);
         // 直到get_event_queue里有run_id对应的事件时结束循环
         while self.get_event_queue().get(&run_id)?.is_empty() {

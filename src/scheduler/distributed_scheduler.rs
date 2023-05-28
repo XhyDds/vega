@@ -52,7 +52,7 @@ pub(crate) struct DistributedScheduler {
     cache_locs: Arc<DashMap<usize, Vec<Vec<Ipv4Addr>>>>,
     master: bool,
     framework_name: String,
-    is_registered: bool, // TODO: check if it is necessary
+    is_registered: bool, // NOTE: check if it is necessary
     active_jobs: HashMap<usize, Job>,
     active_job_queue: Vec<Job>,
     taskid_to_jobid: HashMap<String, usize>,
@@ -62,8 +62,8 @@ pub(crate) struct DistributedScheduler {
     server_uris: Arc<Mutex<VecDeque<SocketAddrV4>>>,
     port: u16,
     map_output_tracker: MapOutputTracker,
-    // TODO: fix proper locking mechanism
-    scheduler_lock: Arc<Mutex<bool>>,
+    // NOTE: fix proper locking mechanism
+    scheduler_lock: Arc<Mutex<bool>>, // lock上之后只有出作用域才会释放
     live_listener_bus: LiveListenerBus,
 }
 
@@ -96,7 +96,7 @@ impl DistributedScheduler {
             cache_locs: Arc::new(DashMap::new()),
             master,
             framework_name: "vega".to_string(),
-            is_registered: true, // TODO: check if it is necessary
+            is_registered: true, // NOTE: check if it is necessary
             active_jobs: HashMap::new(),
             active_job_queue: Vec::new(),
             taskid_to_jobid: HashMap::new(),
