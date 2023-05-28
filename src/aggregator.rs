@@ -37,13 +37,13 @@ impl<K: Data, V: Data> Default for Aggregator<K, V, Vec<V>> {
             let (mut buf, v) = mv;
             buf.push(v);
             buf
-        }));
-        let create_combiner = Box::new(Fn!(|v: V| vec![v]));
+        })); //Vec<V>.push(V)
+        let create_combiner = Box::new(Fn!(|v: V| vec![v])); //return vec![v]
         let merge_combiners = Box::new(Fn!(|mc: (Vec<V>, Vec<V>)| {
             let (mut b1, mut b2) = mc;
             b1.append(&mut b2);
             b1
-        }));
+        })); //combine two Vec<V>
         Aggregator {
             create_combiner,
             merge_value,

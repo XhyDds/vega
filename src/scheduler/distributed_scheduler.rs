@@ -52,7 +52,7 @@ pub(crate) struct DistributedScheduler {
     cache_locs: Arc<DashMap<usize, Vec<Vec<Ipv4Addr>>>>,
     master: bool,
     framework_name: String,
-    is_registered: bool, // TODO: check if it is necessary
+    is_registered: bool, // NOTE: check if it is necessary
     active_jobs: HashMap<usize, Job>,
     active_job_queue: Vec<Job>,
     taskid_to_jobid: HashMap<String, usize>,
@@ -62,8 +62,8 @@ pub(crate) struct DistributedScheduler {
     server_uris: Arc<Mutex<VecDeque<SocketAddrV4>>>,
     port: u16,
     map_output_tracker: MapOutputTracker,
-    // TODO: fix proper locking mechanism
-    scheduler_lock: Arc<Mutex<bool>>,
+    // NOTE: fix proper locking mechanism
+    scheduler_lock: Arc<Mutex<bool>>, // lock上之后只有出作用域才会释放
     live_listener_bus: LiveListenerBus,
 }
 
@@ -96,7 +96,7 @@ impl DistributedScheduler {
             cache_locs: Arc::new(DashMap::new()),
             master,
             framework_name: "vega".to_string(),
-            is_registered: true, // TODO: check if it is necessary
+            is_registered: true, // NOTE: check if it is necessary
             active_jobs: HashMap::new(),
             active_job_queue: Vec::new(),
             taskid_to_jobid: HashMap::new(),
@@ -117,6 +117,9 @@ impl DistributedScheduler {
 
     /// Run an approximate job on the given RDD and pass all the results to an ApproximateEvaluator
     /// as they arrive. Returns a partial result object from the evaluator.
+    /// 在给定的RDD上运行approximate job，并把结果传给approximateevaluator
+    /// 当结果到达时，返回一个来自evaluator的partial result对象
+    /// 和local版本完全一样
     pub fn run_approximate_job<T: Data, U: Data, R, F, E>(
         self: Arc<Self>,
         func: Arc<F>,
@@ -170,6 +173,7 @@ impl DistributedScheduler {
         })
     }
 
+    /// 和local版本完全一样
     pub fn run_job<T: Data, U: Data, F>(
         self: Arc<Self>,
         func: Arc<F>,
@@ -201,6 +205,8 @@ impl DistributedScheduler {
     }
 
     /// Start the event processing loop for a given job.
+    /// 循环处理给定的job (由jobtracker表示)
+    /// 与local版本一样
     async fn event_process_loop<T: Data, U: Data, F, L>(
         self: Arc<Self>,
         allow_local: bool,
@@ -295,6 +301,9 @@ impl DistributedScheduler {
             .collect())
     }
 
+    /// 获取结果
+    /// 逻辑类似local的run_task
+    /// 只是加上了传输的逻辑
     async fn receive_results<T: Data, U: Data, F, R>(
         event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
         receiver: R,
@@ -356,6 +365,8 @@ impl DistributedScheduler {
         };
     }
 
+    /// 将result加入到event_queues中
+    /// 与local版本一样
     fn task_ended(
         event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
         task: Box<dyn TaskBase>,
@@ -379,6 +390,7 @@ impl DistributedScheduler {
 
 #[async_trait::async_trait]
 impl NativeScheduler for DistributedScheduler {
+    /// 提交task
     fn submit_task<T: Data, U: Data, F>(
         &self,
         task: TaskOption,
@@ -388,6 +400,7 @@ impl NativeScheduler for DistributedScheduler {
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
         if !env::Configuration::get().is_driver {
+            // 如果不是主机，则不需要调度
             return;
         }
         log::debug!("inside submit task");
@@ -408,8 +421,9 @@ impl NativeScheduler for DistributedScheduler {
                             target_executor.port(),
                         );
 
-                        // TODO: remove blocking call when possible
+                        // TODO: 可考虑remove blocking call when possible
                         futures::executor::block_on(async {
+                            // 发送端
                             let mut message = capnp::message::Builder::new_default();
                             let mut task_data = message.init_root::<serialized_data::Builder>();
                             task_data.set_msg(&task_bytes);
@@ -422,6 +436,7 @@ impl NativeScheduler for DistributedScheduler {
                         log::debug!("sent data to exec @{}", target_executor.port());
 
                         // receive results back
+                        // 接收到result
                         DistributedScheduler::receive_results::<T, U, F, _>(
                             event_queues_clone,
                             reader,
@@ -432,10 +447,11 @@ impl NativeScheduler for DistributedScheduler {
                         break;
                     }
                     Err(_) => {
+                        // 允许错误五次，每次等待之后重新发送请求
                         if num_retries > 5 {
                             panic!("executor @{} not initialized", target_executor.port());
                         }
-                        tokio::time::delay_for(Duration::from_millis(200)).await;
+                        tokio::time::delay_for(Duration::from_millis(600)).await;
                         num_retries += 1;
                         continue;
                     }
@@ -444,14 +460,19 @@ impl NativeScheduler for DistributedScheduler {
         });
     }
 
+    /// 获取下一个executor的地址
     fn next_executor_server(&self, task: &dyn TaskBase) -> SocketAddrV4 {
         if !task.is_pinned() {
             // pick the first available server
+            // 没被pin住，则任意一个可行的就好
+            // 从server_uris末尾取出一个，然后放到开头
             let socket_addrs = self.server_uris.lock().pop_back().unwrap();
             self.server_uris.lock().push_front(socket_addrs);
             socket_addrs
         } else {
             // seek and pick the selected host
+            // 被pin住了，要找到对应的
+            // 放到开头
             let servers = &mut *self.server_uris.lock();
             let location: Ipv4Addr = task.preferred_locations()[0];
             if let Some((pos, _)) = servers
@@ -468,6 +489,8 @@ impl NativeScheduler for DistributedScheduler {
         }
     }
 
+    /// 更新cache_locs
+    /// 和local版本一样
     async fn update_cache_locs(&self) -> Result<()> {
         self.cache_locs.clear();
         env::Env::get()
@@ -481,6 +504,8 @@ impl NativeScheduler for DistributedScheduler {
         Ok(())
     }
 
+    /// 由shuffle获取shuffle_map_stage
+    /// 和local版本一样
     async fn get_shuffle_map_stage(&self, shuf: Arc<dyn ShuffleDependencyTrait>) -> Result<Stage> {
         log::debug!("getting shuffle map stage");
         let stage = self.shuffle_to_map_stage.get(&shuf.get_shuffle_id());
@@ -499,6 +524,8 @@ impl NativeScheduler for DistributedScheduler {
         }
     }
 
+    /// 获取missing的parent
+    /// 和local版本一样
     async fn get_missing_parent_stages(&'_ self, stage: Stage) -> Result<Vec<Stage>> {
         log::debug!("getting missing parent stages");
         let mut missing: BTreeSet<Stage> = BTreeSet::new();

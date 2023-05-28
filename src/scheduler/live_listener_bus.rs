@@ -13,7 +13,7 @@ use parking_lot::{Mutex, RwLock};
  * post为将事件放入队列
  */
 trait AsyncEventQueue: Send + Sync {
-    // NOTE: 不知道此处的函数在哪里实现
+    // NOTE: 此处的函数在哪里实现？
     fn post(&mut self, event: Arc<dyn ListenerEvent>);
     fn start(&mut self);
     fn stop(&mut self);
@@ -69,7 +69,7 @@ impl LiveListenerBus {
             return;
         }
 
-        //TODO: self.metrics.num_events_posted.inc()
+        //TODO: ？？？self.metrics.num_events_posted.inc()
 
         match self.queued_events {
             None => {
@@ -127,7 +127,7 @@ impl LiveListenerBus {
             }
         }
         self.queued_events = None;
-        // TODO: metricsSystem.registerSource(metrics)
+        // TODO: ？？？metricsSystem.registerSource(metrics)
         Ok(())
     }
 
