@@ -101,7 +101,7 @@ impl<T: Data> ParallelCollection<T> {
             rdd_vals: Arc::new(ParallelCollectionVals {
                 //downgrade()方法返回一个Weak<T>类型的对象，Weak<T>是一个弱引用，不会增加引用计数
                 context: Arc::downgrade(&context),
-                //用data与context生成rdd
+                //由context生成rdd_id
                 vals: Arc::new(RddVals::new(context.clone())),
                 //由data生成的分区
                 splits_: ParallelCollection::slice(data, num_slices),

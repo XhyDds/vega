@@ -53,6 +53,12 @@ impl Default for Schedulers {
 }
 //TOBE DONE
 impl Schedulers {
+    ///scheduler的run_job函数
+    /// 参数：
+    ///    func            :* /
+    /// final_rdd         :* /
+    /// partitions        :* /
+    /// allow_local       :传给distributed_scheduler和local_scheduler的参数
     fn run_job<T: Data, U: Data, F>(
         &self,
         func: Arc<F>,
@@ -66,8 +72,12 @@ impl Schedulers {
         let op_name = final_rdd.get_op_name();
         log::info!("starting `{}` job", op_name);
         let start = Instant::now();
+        //按照自身的枚举类型分别处理
         match self {
+            //distributed
             Distributed(distributed) => {
+                //distributed_scheduler执行run_job
+                //参数同scheduler的run_job保持一致
                 let res = distributed
                     .clone()
                     .run_job(func, final_rdd, partitions, allow_local);
@@ -78,7 +88,10 @@ impl Schedulers {
                 );
                 res
             }
+            //local
             Local(local) => {
+                //local_scheduler执行run_job
+                //参数同scheduler的run_job保持一致
                 let res = local
                     .clone()
                     .run_job(func, final_rdd, partitions, allow_local);
@@ -482,10 +495,12 @@ impl Context {
         }
     }
 
+    /// 获取新的rdd_id并更新rdd_id
     pub fn new_rdd_id(self: &Arc<Self>) -> usize {
         self.next_rdd_id.fetch_add(1, Ordering::SeqCst)
     }
 
+    /// 获取新的shuffle_id并更新shuffle_id
     pub fn new_shuffle_id(self: &Arc<Self>) -> usize {
         self.next_shuffle_id.fetch_add(1, Ordering::SeqCst)
     }
@@ -551,7 +566,8 @@ impl Context {
         config.make_reader(self.clone(), func)
     }
 
-    pub fn run_job<T: Data, U: Data, F>(//对给定的RDD进行F操作
+    pub fn run_job<T: Data, U: Data, F>(
+        //对给定的RDD进行F操作
         self: &Arc<Self>,
         rdd: Arc<dyn Rdd<Item = T>>,
         func: F,
@@ -559,8 +575,11 @@ impl Context {
     where
         F: SerFunc(Box<dyn Iterator<Item = T>>) -> U,
     {
+        //对函数进行包装，使其可序列化可传输
         let cl = Fn!(move |(_task_context, iter)| (func)(iter));
         let func = Arc::new(cl);
+        //将job交给scheduler执行
+        //默认禁止本地
         self.scheduler.run_job(
             func,
             rdd.clone(),

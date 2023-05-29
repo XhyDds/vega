@@ -81,10 +81,10 @@ impl RddVals {
 // Refactored RDD trait into two traits one having RddBase trait which contains only non generic methods which provide information for dependency lists
 // Another separate Rdd containing generic methods like map, etc.,
 /*
-    将RDD trait重构为两部分
-    一部分是RddBase仅提供函数原型，方法提供依赖列表
-    另一部分包含类似map的函数原型
- */
+   将RDD trait重构为两部分
+   一部分是RddBase仅提供函数原型，方法提供依赖列表
+   另一部分包含类似map的函数原型
+*/
 pub trait RddBase: Send + Sync + Serialize + Deserialize {
     fn get_rdd_id(&self) -> usize;
     fn get_context(&self) -> Arc<Context>;
@@ -217,7 +217,8 @@ pub trait Rdd: RddBase + 'static {
 
     /// map函数
     /// 对rdd进行map操作
-    /// 接受一个函数f作为参数，将这个函数应用到每一个元素上，并将结果返回为一个新的RDD
+    /// 接受一个函数f作为参数，将这个函数应用到每一个元素上，并将结果返回为一个新的RDD（MapperRdd）
+    /// Question: Why need to use a new id?
     fn map<U: Data, F>(&self, f: F) -> SerArc<dyn Rdd<Item = U>>
     where
         F: SerFunc(Self::Item) -> U,
@@ -267,12 +268,12 @@ pub trait Rdd: RddBase + 'static {
     的作用是禁用clippy lint检查器中的type_complexity检查。
     这个lint检查器会在函数签名中出现过于复杂的类型时发出警告。
      */
-    #[allow(clippy::type_complexity)]    
+    #[allow(clippy::type_complexity)]
     fn glom(&self) -> SerArc<dyn Rdd<Item = Vec<Self::Item>>>
     /*
-        1、glom的作用是将同一个分区里的元素合并到一个array里
-        2、glom属于Transformation算子
-     */
+       1、glom的作用是将同一个分区里的元素合并到一个array里
+       2、glom属于Transformation算子
+    */
     where
         Self: Sized,
     {
@@ -458,6 +459,7 @@ pub trait Rdd: RddBase + 'static {
     where
         Self: Sized,
     {
+        //对collect函数进行包装
         let cl =
             Fn!(|iter: Box<dyn Iterator<Item = Self::Item>>| iter.collect::<Vec<Self::Item>>());
         //Fn!是用于产生Rust闭包的宏，其中使用proc_macro
@@ -468,7 +470,9 @@ pub trait Rdd: RddBase + 'static {
         */
         let _results = self.get_context();
         let rd = self.get_rdd();
+        //运行run_job函数，发送待处理的rdd:rd，以及collect的函数:cl
         let results = _results.run_job(rd, cl)?;
+        //TOBE DONE
         let size = results.iter().fold(0, |a, b: &Vec<Self::Item>| a + b.len());
         Ok(results
             .into_iter()
@@ -693,13 +697,13 @@ pub trait Rdd: RddBase + 'static {
             .scan(0.0f64, |state, x| {
                 *state = *state + x;
                 Some(*state)
-            });//scan使用自定义函数保留状态，类似于fold但是会产生新的iter
-        full_bounds.extend(bounds);//将新产生的迭代器的元素追加到full_bounds中
+            }); //scan使用自定义函数保留状态，类似于fold但是会产生新的iter
+        full_bounds.extend(bounds); //将新产生的迭代器的元素追加到full_bounds中
 
         let mut splitted_rdds: Vec<SerArc<dyn Rdd<Item = Self::Item>>> = Vec::new();
 
         for bound in full_bounds.windows(2) {
-            let (lower_bound, upper_bound )  = (bound[0], bound[1]);
+            let (lower_bound, upper_bound) = (bound[0], bound[1]);
             let func = Fn!(move |index: usize,
                                  partition: Box<dyn Iterator<Item = Self::Item>>|
                   -> Box<dyn Iterator<Item = Self::Item>> {
@@ -724,7 +728,7 @@ pub trait Rdd: RddBase + 'static {
     /// * `with_replacement` - can elements be sampled multiple times (replaced when sampled out)
     /// * `fraction` - expected size of the sample as a fraction of this RDD's size
     /// ** if without replacement: probability that each element is chosen; fraction must be [0, 1]
-    /// ** if with replacement: expected number of times each element is chosen; 
+    /// ** if with replacement: expected number of times each element is chosen;
     /// fraction must be greater than or equal to 0
     /// * seed for the random number generator
     ///
@@ -851,8 +855,9 @@ pub trait Rdd: RddBase + 'static {
 
     fn union(
         &self,
-        other: Arc<dyn Rdd<Item = Self::Item>>,//Arc就是能在多线程之间传输的对象
-    ) -> Result<SerArc<dyn Rdd<Item = Self::Item>>>//SerArc就是能在分布环境下通过网络传输的对象
+        other: Arc<dyn Rdd<Item = Self::Item>>, //Arc就是能在多线程之间传输的对象
+    ) -> Result<SerArc<dyn Rdd<Item = Self::Item>>>
+    //SerArc就是能在分布环境下通过网络传输的对象
     where
         Self: Clone,
     {
@@ -862,7 +867,8 @@ pub trait Rdd: RddBase + 'static {
         ])?))
     }
 
-    fn zip<S: Data>(//本质上还是通过一种专用类型的RDD的初始化来完成功能
+    fn zip<S: Data>(
+        //本质上还是通过一种专用类型的RDD的初始化来完成功能
         &self,
         second: Arc<dyn Rdd<Item = S>>,
     ) -> SerArc<dyn Rdd<Item = (Self::Item, S)>>
@@ -887,7 +893,8 @@ pub trait Rdd: RddBase + 'static {
     /// subtract function, same as the one found in apache spark
     /// example of subtract can be found in subtract.rs
     /// performs a full outer join followed by and intersection with self to get subtraction.
-    fn subtract<T>(&self, other: Arc<T>) -> SerArc<dyn Rdd<Item = Self::Item>>//做差集?
+    fn subtract<T>(&self, other: Arc<T>) -> SerArc<dyn Rdd<Item = Self::Item>>
+    //做差集?
     where
         Self: Clone,
         Self::Item: Data + Eq + Hash,
@@ -911,7 +918,7 @@ pub trait Rdd: RddBase + 'static {
                 |x: Self::Item| -> (Self::Item, Option<Self::Item>) { (x, None) }
             )))
             .clone();
-        let rdd = self//map是对RDD中的元素做操作
+        let rdd = self //map是对RDD中的元素做操作
             .map(Box::new(Fn!(|x| -> (Self::Item, Option<Self::Item>) {
                 (x, None)
             })))
@@ -924,24 +931,26 @@ pub trait Rdd: RddBase + 'static {
                 (Vec::<Option<Self::Item>>, Vec::<Option<Self::Item>>)
             )|
              -> Option<Self::Item> {
-                if (v1.len() >= 1) ^ (v2.len() >= 1) {//异或操作是subtract的核心
+                if (v1.len() >= 1) ^ (v2.len() >= 1) {
+                    //异或操作是subtract的核心
                     Some(x)
                 } else {
                     None
                 }
             })))
-            .map_partitions(Box::new(Fn!(|iter: Box<//map_partitions是对RDD中的分区做操作，参数是分区的迭代器
-                dyn Iterator<Item = Option<Self::Item>>,
-            >|
-             -> Box<
-                dyn Iterator<Item = Self::Item>,
-            > {
-                Box::new(iter.filter(|x| x.is_some()).map(|x| x.unwrap()))
-                    as Box<dyn Iterator<Item = Self::Item>>
-            })));
+            .map_partitions(Box::new(Fn!(
+                |iter: Box<
+                    //map_partitions是对RDD中的分区做操作，参数是分区的迭代器
+                    dyn Iterator<Item = Option<Self::Item>>,
+                >|
+                 -> Box<dyn Iterator<Item = Self::Item>> {
+                    Box::new(iter.filter(|x| x.is_some()).map(|x| x.unwrap()))
+                        as Box<dyn Iterator<Item = Self::Item>>
+                }
+            )));
 
         let subtraction = self.intersection(Arc::new(rdd));
-        (&*subtraction).register_op_name("subtraction");//使用*可以使用Arc对象的内部值
+        (&*subtraction).register_op_name("subtraction"); //使用*可以使用Arc对象的内部值
         subtraction
     }
 
@@ -973,7 +982,8 @@ pub trait Rdd: RddBase + 'static {
                 (Vec::<Option<Self::Item>>, Vec::<Option<Self::Item>>)
             )|
              -> Option<Self::Item> {
-                if v1.len() >= 1 && v2.len() >= 1 {//&&操作是intersect的核心
+                if v1.len() >= 1 && v2.len() >= 1 {
+                    //&&操作是intersect的核心
                     Some(x)
                 } else {
                     None
@@ -1098,7 +1108,7 @@ pub trait Rdd: RddBase + 'static {
 
         let evaluator = CountEvaluator::new(self.number_of_splits(), confidence);
         let rdd = self.get_rdd();
-        rdd.register_op_name("count_approx");//注册操作，实际代码在具体RDD实现中完成
+        rdd.register_op_name("count_approx"); //注册操作，实际代码在具体RDD实现中完成
         self.get_context()
             .run_approximate_job(count_elements, rdd, evaluator, timeout)
     }
@@ -1110,7 +1120,8 @@ pub trait Rdd: RddBase + 'static {
         T: Data,
         F: SerFunc(&Self::Item) -> T,
     {
-        self.map(Fn!(move |k: Self::Item| -> (Self::Item, T) {//RDD的map都是通过创建MapRDD的初始化完成的，k是RDD中的每一个元素
+        self.map(Fn!(move |k: Self::Item| -> (Self::Item, T) {
+            //RDD的map都是通过创建MapRDD的初始化完成的，k是RDD中的每一个元素
             let t = (func)(&k);
             (k, t)
         }))

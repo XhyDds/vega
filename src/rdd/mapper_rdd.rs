@@ -38,6 +38,7 @@ where
             vals: self.vals.clone(),
             f: self.f.clone(),
             pinned: AtomicBool::new(self.pinned.load(SeqCst)),
+            // 一个标记，用于强制标记类型参数T
             _marker_t: PhantomData,
         }
     }
