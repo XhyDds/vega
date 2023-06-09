@@ -16,8 +16,9 @@ use crate::partial::{ApproximateActionListener, ApproximateEvaluator, PartialRes
 use crate::rdd::{Rdd, RddBase};
 use crate::scheduler::{
     listener::{JobEndListener, JobStartListener},
-    CompletionEvent, EventQueue, Job, JobListener, JobTracker, LiveListenerBus, NativeScheduler,
-    NoOpListener, ResultTask, Stage, TaskBase, TaskContext, TaskOption, TaskResult, TastEndReason,
+    CompletionEvent, EventQueue, FetchFailedVals, Job, JobListener, JobTracker, LiveListenerBus,
+    NativeScheduler, NoOpListener, ResultTask, Stage, TaskBase, TaskContext, TaskOption,
+    TaskResult, TastEndReason,
 };
 use crate::serializable_traits::{AnyData, Data, SerFunc};
 use crate::serialized_data_capnp::serialized_data;
@@ -313,6 +314,7 @@ impl DistributedScheduler {
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
         R: futures::AsyncRead + std::marker::Unpin,
     {
+        //为task_ended的参数做准备
         let result: TaskResult = {
             let message = capnp_futures::serialize::read_message(receiver, CAPNP_BUF_READ_OPTS)
                 .await
@@ -359,6 +361,48 @@ impl DistributedScheduler {
                         task_final,
                         TastEndReason::Success,
                         result.into_box(),
+                    );
+                }
+            }
+        };
+    }
+
+    async fn task_failed<T: Data, U: Data, F>(
+        event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
+        task: TaskOption,
+        target_port: u16,
+    ) where
+        F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
+    {
+        let reason = TastEndReason::FetchFailed(FetchFailedVals {
+            server_uri: format!("error"),
+            shuffle_id: 0,
+            map_id: 0,
+            reduce_id: 0,
+        });
+        let result = String::from("Hello");
+        match task {
+            TaskOption::ResultTask(tsk) => {
+                if let Ok(task_final) = tsk.downcast::<ResultTask<T, U, F>>() {
+                    let task_final = task_final as Box<dyn TaskBase>;
+                    DistributedScheduler::task_ended(
+                        event_queues,
+                        task_final,
+                        reason,
+                        // Can break in future. But actually not needed for distributed scheduler since task runs on different processes.
+                        // Currently using this because local scheduler needs it. It can be solved by refactoring tasks differently for local and distributed scheduler
+                        Box::new(result),
+                    );
+                }
+            }
+            TaskOption::ShuffleMapTask(tsk) => {
+                if let Ok(task_final) = tsk.downcast::<ShuffleMapTask>() {
+                    let task_final = task_final as Box<dyn TaskBase>;
+                    DistributedScheduler::task_ended(
+                        event_queues,
+                        task_final,
+                        reason,
+                        Box::new(result),
                     );
                 }
             }
@@ -449,7 +493,15 @@ impl NativeScheduler for DistributedScheduler {
                     Err(_) => {
                         // 允许错误五次，每次等待之后重新发送请求
                         if num_retries > 5 {
-                            panic!("executor @{} not initialized", target_executor.port());
+                            //重新发送
+                            DistributedScheduler::task_failed::<T, U, F>(
+                                event_queues_clone,
+                                task,
+                                target_executor.port(),
+                            )
+                            .await;
+                            //清除executor(?)
+                            panic!("executor @{} can not response", target_executor.port());
                         }
                         tokio::time::delay_for(Duration::from_millis(600)).await;
                         num_retries += 1;
