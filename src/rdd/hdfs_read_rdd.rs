@@ -48,6 +48,7 @@ impl HdfsReadRdd {
 */
 //! This module implements HDFS RDD from parallel collection RDD for reading contents from specific files
 use std::sync::{Arc, Weak};
+use hdrs::{Client, OpenOptions};
 
 use crate::context::Context;
 use crate::dependency::Dependency;
@@ -120,15 +121,15 @@ pub struct hdfsVals<T> {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct hdfs<T> {
+pub struct HdfsReadRdd<T> {
     #[serde(skip_serializing, skip_deserializing)]
     name: Mutex<String>,
     rdd_vals: Arc<hdfsVals<T>>,
 }
 
-impl<T: Data> Clone for hdfs<T> {
+impl<T: Data> Clone for HdfsReadRdd<T> {
     fn clone(&self) -> Self {
-        hdfs {
+        HdfsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
             rdd_vals: self.rdd_vals.clone(),
         }
@@ -139,12 +140,12 @@ impl<T: Data> Clone for hdfs<T> {
 /// 接收一个迭代器data和分区数量num_slices
 /// 产生一个hdfs对象
 /// hdfs对象包含一个Mutex<String>和一个Arc<hdfsVals<T>>
-impl<T: Data> hdfs<T> {
+impl<T: Data> HdfsReadRdd<T> {
     pub fn new<I>(context: Arc<Context>, data: I, num_slices: usize) -> Self
     where
         I: IntoIterator<Item = T>,
     {
-        hdfs {
+        HdfsReadRdd {
             name: Mutex::new("hdfs_collection".to_owned()),
             rdd_vals: Arc::new(hdfsVals {
                 //downgrade()方法返回一个Weak<T>类型的对象，Weak<T>是一个弱引用，不会增加引用计数
@@ -152,7 +153,7 @@ impl<T: Data> hdfs<T> {
                 //由context生成rdd_id
                 vals: Arc::new(RddVals::new(context.clone())),
                 //由data生成的分区
-                splits_: hdfs::slice(data, num_slices),
+                splits_: HdfsReadRdd::slice(data, num_slices),
                 //分区数
                 num_slices,
             }),
@@ -170,7 +171,7 @@ impl<T: Data> hdfs<T> {
             num_slices: splits_.len(),
             splits_,
         };
-        hdfs {
+        HdfsReadRdd {
             name: Mutex::new("parallel_collection".to_owned()),
             rdd_vals: Arc::new(rdd_vals),
         }
@@ -218,7 +219,7 @@ impl<T: Data> hdfs<T> {
     }
 }
 
-impl<K: Data, V: Data> RddBase for hdfs<(K, V)> 
+impl<K: Data, V: Data> RddBase for HdfsReadRdd<(K, V)> 
 {
     // (a1,a2,...),(b1,b2,...)-->((a1,b1),(a2,b2)...)
     fn cogroup_iterator_any(
@@ -232,7 +233,7 @@ impl<K: Data, V: Data> RddBase for hdfs<(K, V)>
     }
 }
 
-impl<T: Data> RddBase for hdfs<T> {
+impl<T: Data> RddBase for HdfsReadRdd<T> {
     fn get_rdd_id(&self) -> usize {
         self.rdd_vals.vals.id
     }
@@ -289,10 +290,10 @@ impl<T: Data> RddBase for hdfs<T> {
     }
 }
 
-impl<T: Data> Rdd for hdfs<T> {
+impl<T: Data> Rdd for HdfsReadRdd<T> {
     type Item = T;
     fn get_rdd(&self) -> Arc<dyn Rdd<Item = Self::Item>> {
-        Arc::new(hdfs {
+        Arc::new(HdfsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
             rdd_vals: self.rdd_vals.clone(),
         })
