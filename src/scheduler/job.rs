@@ -90,6 +90,7 @@ where
 }
 
 // 两种新建JobTracker的方式
+// 用scheduler新建JobTracker
 impl<F, U: Data, T: Data, L> JobTracker<F, U, T, L>
 where
     F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,

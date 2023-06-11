@@ -55,6 +55,12 @@ impl<T: Data> ParallelCollectionSplit<T> {
     }
 }
 
+/// 结构体ParallelCollectionVals
+/// 成员：
+/// RddVals: Rdd的元数据
+/// splits_: 分区
+/// num_slices: 分区数量
+/// context: 环境/上下文(接受一个弱引用)
 #[derive(Serialize, Deserialize)]
 pub struct ParallelCollectionVals<T> {
     vals: Arc<RddVals>,
@@ -80,6 +86,11 @@ impl<T: Data> Clone for ParallelCollection<T> {
     }
 }
 
+/// 函数ParallelCollection::new
+/// 接收一个迭代器data和分区数量num_slices
+/// 产生一个ParallelCollection对象
+/// ParallelCollection对象包含一个Mutex<String>和一个Arc<ParallelCollectionVals<T>>
+///
 impl<T: Data> ParallelCollection<T> {
     pub fn new<I>(context: Arc<Context>, data: I, num_slices: usize) -> Self
     where
@@ -88,9 +99,13 @@ impl<T: Data> ParallelCollection<T> {
         ParallelCollection {
             name: Mutex::new("parallel_collection".to_owned()),
             rdd_vals: Arc::new(ParallelCollectionVals {
+                //downgrade()方法返回一个Weak<T>类型的对象，Weak<T>是一个弱引用，不会增加引用计数
                 context: Arc::downgrade(&context),
+                //由context生成rdd_id
                 vals: Arc::new(RddVals::new(context.clone())),
+                //由data生成的分区
                 splits_: ParallelCollection::slice(data, num_slices),
+                //分区数
                 num_slices,
             }),
         }
@@ -116,6 +131,7 @@ impl<T: Data> ParallelCollection<T> {
     /**
      * slice 接收data和分区数量 num_slices
      * 消耗掉data中的元素，产生一堆内存中分区对象
+     * 生成将data分成num_slices个分区
      */
     fn slice<I>(data: I, num_slices: usize) -> Vec<Arc<Vec<T>>>
     where
@@ -134,11 +150,13 @@ impl<T: Data> ParallelCollection<T> {
             let mut output = Vec::new();
             let mut tmp = Vec::new();
             let mut iter_count = 0;
+            // 将data中的元素放入tmp中，当tmp中的元素数量达到end时，将tmp放入output中
             for i in data {
                 if iter_count < end {
                     tmp.push(i);
                     iter_count += 1;
                 } else {
+                    // tmp中的元素数量达到end,放入output中,并更新end,开启新的分区的收集
                     slice_count += 1;
                     end = ((slice_count + 1) * data_len) / num_slices;
                     output.push(Arc::new(tmp.drain(..).collect::<Vec<_>>()));

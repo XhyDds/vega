@@ -170,6 +170,8 @@ impl LocalScheduler {
     }
 
     /// 处理方式类似于run_approximate_job
+    /// 在给定的RDD上运行job，并把结果传给evaluator
+    /// 当结果到达时，返回一个来自evaluator的partial result对象
     pub fn run_job<T: Data, U: Data, F>(
         self: Arc<Self>,
         func: Arc<F>,
@@ -186,8 +188,11 @@ impl LocalScheduler {
         let selfc = self.clone();
         let _lock = selfc.scheduler_lock.lock();
         println!("get lock for scheduler");
+        //异步执行
         env::Env::run_in_async_rt(|| -> Result<Vec<U>> {
+            //传入的闭包非异步，用block_on包装
             futures::executor::block_on(async move {
+                //由fun和rdd、分区生成一个jobtracker
                 let jt = JobTracker::from_scheduler(
                     &*self,
                     func,
