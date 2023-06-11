@@ -39,6 +39,11 @@ pub struct ZippedPartitionsRdd<F: Data, S: Data> {
 }
 
 impl<F: Data, S: Data> Clone for ZippedPartitionsRdd<F, S> {
+    //PhantomData作用
+    //PhantomData是一个零大小类型，它的作用是在编译期提供额外的类型信息，而不会在运行时占用任何空间。它通常用于以下场景
+    // 为了满足编译器的类型检查，而不需要实际存储数据。
+    // 为了提供额外的类型信息，以便在编译期执行某些操作。
+    // 为了向编译器提供某些信息，以便进行优化。
     fn clone(&self) -> Self {
         ZippedPartitionsRdd {
             first: self.first.clone(),

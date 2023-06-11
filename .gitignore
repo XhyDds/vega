@@ -8,3 +8,5 @@
 /userGuide/book
 /Cargo.lock
 .vscode/
+
+perf.data*

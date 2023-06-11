@@ -1,5 +1,54 @@
-//! This module implements parallel collection RDD for dividing the input collection for parallel processing.
+/* 
+use hdrs::{Client, OpenOptions};
+
+use crate::rdd::{Rdd, RddBase, RddVals};
+use crate::serializable_traits::{AnyData, Data, Func, SerFunc};
+use crate::dependency::{Dependency, OneToOneDependency};
+
+pub struct HdfsReadRdd<T: Data> {
+    name: Mutex<String>,
+    prev: Arc<dyn Rdd<Item = T>>,
+    vals: Arc<RddVals>,
+
+    nn: Mutex<String>,
+    is_dir: AtomicBool,
+    path: Mutex<String>,
+    fs: Client,
+    open_options: OpenOptions,
+}
+
+impl HdfsReadRdd {
+    //hdfs_read_rdd的构造函数
+    //接受三个参数，分别是namenode的地址，是否是目录，目录或文件的路径
+    //返回一个Result，因为有可能连接失败
+    pub fn new(prev: Arc<dyn Rdd<Item = T>>, nn: String, is_dir: bool, path: String) -> Result<Self, std::io::Error> {
+        let mut vals = RddVals::new(prev.get_context());
+        vals.dependencies
+            .push(Dependency::NarrowDependency(Arc::new(
+                OneToOneDependency::new(prev.get_rdd_base()),
+            )));
+        let fs = match Client::connect(nn.as_str()) {
+            Ok(fs) => fs,
+            Err(e) => return Err(e),
+        };
+        // match fs.metadata(path) {//检查文件是否存在
+        //     Ok(_) => (),
+        //     Err(e) => return Err(e),
+        // }
+        let oo = fs.open_file();
+        HdfsReadRdd {
+            nn: Mutex::new(nn),
+            is_dir: AtomicBool::new(is_dir),
+            path: Mutex::new(path),
+            fs,
+            oo,
+        }
+    }
+}
+*/
+//! This module implements HDFS RDD from parallel collection RDD for reading contents from specific files
 use std::sync::{Arc, Weak};
+use hdrs::{Client, OpenOptions};
 
 use crate::context::Context;
 use crate::dependency::Dependency;
@@ -28,21 +77,21 @@ where
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ParallelCollectionSplit<T> {
+pub struct hdfsSplit<T> {
     rdd_id: i64,
     index: usize,
     values: Arc<Vec<T>>,
 }
 
-impl<T: Data> Split for ParallelCollectionSplit<T> {
+impl<T: Data> Split for hdfsSplit<T> {
     fn get_index(&self) -> usize {
         self.index
     }
 }
 
-impl<T: Data> ParallelCollectionSplit<T> {
+impl<T: Data> hdfsSplit<T> {
     fn new(rdd_id: i64, index: usize, values: Arc<Vec<T>>) -> Self {
-        ParallelCollectionSplit {
+        hdfsSplit {
             rdd_id,
             index,
             values,
@@ -56,14 +105,14 @@ impl<T: Data> ParallelCollectionSplit<T> {
     }
 }
 
-/// 结构体ParallelCollectionVals
+/// 结构体hdfsVals
 /// 成员：
 /// RddVals: Rdd的元数据
 /// splits_: 分区
 /// num_slices: 分区数量
 /// context: 环境/上下文(接受一个弱引用)
 #[derive(Serialize, Deserialize)]
-pub struct ParallelCollectionVals<T> {
+pub struct hdfsVals<T> {
     vals: Arc<RddVals>,
     #[serde(skip_serializing, skip_deserializing)]
     context: Weak<Context>,
@@ -72,40 +121,39 @@ pub struct ParallelCollectionVals<T> {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ParallelCollection<T> {
+pub struct HdfsReadRdd<T> {
     #[serde(skip_serializing, skip_deserializing)]
     name: Mutex<String>,
-    rdd_vals: Arc<ParallelCollectionVals<T>>,
+    rdd_vals: Arc<hdfsVals<T>>,
 }
 
-impl<T: Data> Clone for ParallelCollection<T> {
+impl<T: Data> Clone for HdfsReadRdd<T> {
     fn clone(&self) -> Self {
-        ParallelCollection {
+        HdfsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
             rdd_vals: self.rdd_vals.clone(),
         }
     }
 }
 
-/// 函数ParallelCollection::new
+/// 函数hdfs::new
 /// 接收一个迭代器data和分区数量num_slices
-/// 产生一个ParallelCollection对象
-/// ParallelCollection对象包含一个Mutex<String>和一个Arc<ParallelCollectionVals<T>>
-///
-impl<T: Data> ParallelCollection<T> {
+/// 产生一个hdfs对象
+/// hdfs对象包含一个Mutex<String>和一个Arc<hdfsVals<T>>
+impl<T: Data> HdfsReadRdd<T> {
     pub fn new<I>(context: Arc<Context>, data: I, num_slices: usize) -> Self
     where
         I: IntoIterator<Item = T>,
     {
-        ParallelCollection {
-            name: Mutex::new("parallel_collection".to_owned()),
-            rdd_vals: Arc::new(ParallelCollectionVals {
+        HdfsReadRdd {
+            name: Mutex::new("hdfs_collection".to_owned()),
+            rdd_vals: Arc::new(hdfsVals {
                 //downgrade()方法返回一个Weak<T>类型的对象，Weak<T>是一个弱引用，不会增加引用计数
                 context: Arc::downgrade(&context),
                 //由context生成rdd_id
                 vals: Arc::new(RddVals::new(context.clone())),
                 //由data生成的分区
-                splits_: ParallelCollection::slice(data, num_slices),
+                splits_: HdfsReadRdd::slice(data, num_slices),
                 //分区数
                 num_slices,
             }),
@@ -117,13 +165,13 @@ impl<T: Data> ParallelCollection<T> {
         C: Chunkable<T>,
     {
         let splits_ = data.slice();
-        let rdd_vals = ParallelCollectionVals {
+        let rdd_vals = hdfsVals {
             context: Arc::downgrade(&context),
             vals: Arc::new(RddVals::new(context.clone())),
             num_slices: splits_.len(),
             splits_,
         };
-        ParallelCollection {
+        HdfsReadRdd {
             name: Mutex::new("parallel_collection".to_owned()),
             rdd_vals: Arc::new(rdd_vals),
         }
@@ -171,8 +219,9 @@ impl<T: Data> ParallelCollection<T> {
     }
 }
 
-impl<K: Data, V: Data> RddBase for ParallelCollection<(K, V)> 
+impl<K: Data, V: Data> RddBase for HdfsReadRdd<(K, V)> 
 {
+    // (a1,a2,...),(b1,b2,...)-->((a1,b1),(a2,b2)...)
     fn cogroup_iterator_any(
         &self,
         split: Box<dyn Split>,
@@ -184,7 +233,7 @@ impl<K: Data, V: Data> RddBase for ParallelCollection<(K, V)>
     }
 }
 
-impl<T: Data> RddBase for ParallelCollection<T> {
+impl<T: Data> RddBase for HdfsReadRdd<T> {
     fn get_rdd_id(&self) -> usize {
         self.rdd_vals.vals.id
     }
@@ -203,13 +252,13 @@ impl<T: Data> RddBase for ParallelCollection<T> {
     }
 
     fn get_dependencies(&self) -> Vec<Dependency> {
-        self.rdd_vals.vals.dependencies.clone()
+        Vec<Dependency(NarrowDependency)>::new()
     }
 
     fn splits(&self) -> Vec<Box<dyn Split>> {
         (0..self.rdd_vals.splits_.len())
             .map(|i| {
-                Box::new(ParallelCollectionSplit::new(
+                Box::new(hdfsSplit::new(
                     self.rdd_vals.vals.id as i64,
                     i,
                     self.rdd_vals.splits_[i as usize].clone(),
@@ -241,10 +290,10 @@ impl<T: Data> RddBase for ParallelCollection<T> {
     }
 }
 
-impl<T: Data> Rdd for ParallelCollection<T> {
+impl<T: Data> Rdd for HdfsReadRdd<T> {
     type Item = T;
     fn get_rdd(&self) -> Arc<dyn Rdd<Item = Self::Item>> {
-        Arc::new(ParallelCollection {
+        Arc::new(HdfsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
             rdd_vals: self.rdd_vals.clone(),
         })
@@ -255,11 +304,11 @@ impl<T: Data> Rdd for ParallelCollection<T> {
     }
 
     fn compute(&self, split: Box<dyn Split>) -> Result<Box<dyn Iterator<Item = Self::Item>>> {
-        if let Some(s) = split.downcast_ref::<ParallelCollectionSplit<T>>() {
+        if let Some(s) = split.downcast_ref::<hdfsSplit<T>>() {
             Ok(s.iterator())
         } else {
             panic!(
-                "Got split object from different concrete type other than ParallelCollectionSplit"
+                "Got split object from different concrete type other than hdfsSplit"
             )
         }
     }
