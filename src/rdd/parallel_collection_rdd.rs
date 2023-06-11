@@ -8,7 +8,8 @@ use crate::rdd::{Rdd, RddBase, RddVals};
 use crate::serializable_traits::{AnyData, Data};
 use crate::split::Split;
 use parking_lot::Mutex;
-use serde_derive::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde_derive::{Serialize};
 
 /// A collection of objects which can be sliced into partitions with a partitioning function.
 pub trait Chunkable<D>
@@ -170,7 +171,8 @@ impl<T: Data> ParallelCollection<T> {
     }
 }
 
-impl<K: Data, V: Data> RddBase for ParallelCollection<(K, V)> {
+impl<K: Data, V: Data> RddBase for ParallelCollection<(K, V)> 
+{
     fn cogroup_iterator_any(
         &self,
         split: Box<dyn Split>,

@@ -47,6 +47,8 @@ impl NarrowDependencyTrait for OneToOneDependency {
 }
 
 /// Represents a one-to-one dependency between ranges of partitions in the parent and child RDDs.
+/// 在Rust中，pub(crate)表示该项在当前crate中可见。这意味着该项可以被当前crate中的任何模块访问，但不能被crate外部的模块访问。4
+// 在你提供的代码中，pub(crate)用于使RangeDependency结构体在当前crate中可见。
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct RangeDependency {
     #[serde(with = "serde_traitobject")]

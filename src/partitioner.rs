@@ -56,6 +56,7 @@ impl<K: Data + Hash + Eq> Partitioner for HashPartitioner<K> {
     }
     fn get_partition(&self, key: &dyn Any) -> usize {
         let key = key.downcast_ref::<K>().unwrap();
+        //使用库函数对key进行hash操作
         hash(key) as usize % self.partitions
     }
 }

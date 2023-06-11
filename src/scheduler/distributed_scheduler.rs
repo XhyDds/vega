@@ -370,7 +370,7 @@ impl DistributedScheduler {
     async fn task_failed<T: Data, U: Data, F>(
         event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
         task: TaskOption,
-        target_port: u16,
+        _target_port: u16,
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {

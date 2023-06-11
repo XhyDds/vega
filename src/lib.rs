@@ -5,6 +5,7 @@
     fn_traits,
     never_type,
     specialization,
+    // min_specialization,
     unboxed_closures,
     unsize,
     binary_heap_into_iter_sorted,
@@ -12,7 +13,7 @@
 )]
 #![allow(dead_code, where_clauses_object_safety, deprecated)]
 #![allow(clippy::single_component_path_imports)]
-
+#![allow(incomplete_features)]
 mod serialized_data_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/serialized_data_capnp.rs"));
 }

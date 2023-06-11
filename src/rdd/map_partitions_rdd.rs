@@ -18,7 +18,7 @@ where
     F: Func(usize, Box<dyn Iterator<Item = T>>) -> Box<dyn Iterator<Item = U>> + Clone,
 {
     #[serde(skip_serializing, skip_deserializing)]
-    name: Mutex<String>,
+    name: Mutex<String>,//在序列化和反序列化时跳过该字段
     #[serde(with = "serde_traitobject")]
     prev: Arc<dyn Rdd<Item = T>>,
     vals: Arc<RddVals>,
@@ -100,6 +100,7 @@ where
     }
 
     fn splits(&self) -> Vec<Box<dyn Split>> {
+        //Split 就是一个get_index 
         self.prev.splits()
     }
 
