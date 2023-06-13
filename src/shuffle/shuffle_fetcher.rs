@@ -18,7 +18,7 @@ impl ShuffleFetcher {
         reduce_id: usize,
     ) -> Result<impl Iterator<Item = (K, V)>> {
         //这段代码实现了一个异步的数据获取函数，该函数从指定的服务器上获取数据，并以迭代器的形式返回。
-        //该函数的输入参数包括shuffle_id和reduce_id，这两个参数用于确定要获取的shuffle数据的位置。
+        //该函数的输入参数包括shuffle_id和reduce_id，这两个参数用于确定要获取的shuffle数据的uri。
         //最后，所有结果被合并成一个迭代器，并返回给调用者。
         log::debug!("inside fetch function");
         let mut inputs_by_uri = HashMap::new();

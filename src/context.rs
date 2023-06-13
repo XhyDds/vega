@@ -503,6 +503,8 @@ impl Context {
     /// 获取新的shuffle_id并更新shuffle_id
     pub fn new_shuffle_id(self: &Arc<Self>) -> usize {
         self.next_shuffle_id.fetch_add(1, Ordering::SeqCst)
+        //Ordering::SeqCst是一个原子内存序，保证多线程下对内存的操作顺序是正确顺序
+        //fetch_add函数是存入新值并返回上一个值（Adds to the current value, returning the previous value.）
     }
 
     pub fn make_rdd<T: Data, I>(
@@ -542,6 +544,8 @@ impl Context {
     where
         I: IntoIterator<Item = T>,
     {
+        //函数功能是将seq建为一个有num_slices个分区的RDD
+
         //SerArc是一个基于Serde的Rust库，它提供了一种将Rust结构体序列化为Arc的方法。
         /*Serde是一个Rust库，用于序列化和反序列化Rust数据结构。
          * 它支持以下数据类型的序列化和反序列化，
