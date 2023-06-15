@@ -1,5 +1,5 @@
-use rand::Rng;
 use vega::*;
+use rand::Rng;
 
 fn main() -> Result<()> {
     let sc = Context::new()?;
