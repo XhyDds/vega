@@ -6,6 +6,7 @@ use crate::serializable_traits::{Data, SerFunc};
 use crate::SerArc;
 
 mod local_file_reader;
+mod hdfs_file_reader;
 pub use local_file_reader::{LocalFsReader, LocalFsReaderConfig};
 
 pub trait ReaderConfiguration<I: Data> {
