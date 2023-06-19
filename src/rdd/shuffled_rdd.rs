@@ -16,7 +16,7 @@ use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
 
-/// 定义这个类是为了实现Split trait，这个特性是自定义的，用来
+/// 定义这个类是为了实现Split trait，这个特性是自定义的，用来获取当前的index
 struct ShuffledRddSplit {
     index: usize,
 }
@@ -151,7 +151,7 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> Rdd for ShuffledRdd<K, V, C> {
     fn compute(&self, split: Box<dyn Split>) -> Result<Box<dyn Iterator<Item = Self::Item>>> {
         log::debug!("compute inside shuffled rdd");
         let start = Instant::now();
-        //fetch是一个async函数，调用结果是一个fut，<k,v>是URL和INDEX
+        //fetch是一个async函数，调用结果是一个future，<k,v>是URL和INDEX
         let fut = ShuffleFetcher::fetch::<K, C>(self.shuffle_id, split.get_index());
         let mut combiners: HashMap<K, Option<C>> = HashMap::new();
         for (k, c) in futures::executor::block_on(fut)?.into_iter() {//异步执行

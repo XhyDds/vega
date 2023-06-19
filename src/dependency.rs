@@ -164,6 +164,30 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
     }
 
     fn do_shuffle_task(&self, rdd_base: Arc<dyn RddBase>, partition: usize) -> String {
+        /*ChatGpt:
+            这个函数是一个执行Shuffle任务的方法，接受一个RDD对象和一个分区索引作为参数，返回一个字符串表示Shuffle任务的服务器URI。
+            该方法首先从RDD中获取指定分区的Split，然后遍历该Split中的所有元素，并根据键值对的键使用Partitioner获取对应的Bucket ID。
+            然后，该方法将键值对添加到相应的Bucket中，如果Bucket中已经存在键，则调用Aggregator的merge_value方法将新值与旧值合并，否则调用create_combiner方法创建一个新的组合器。
+            最后，该方法将每个Bucket中的键值对序列化为字节数组，并将其存储在环境变量的SHUFFLE_CACHE中，其中键是Shuffle ID、分区索引和Bucket ID的元组，值是字节数组。
+            该方法返回Shuffle任务的服务器URI，以便客户端可以向其发送请求以获取Shuffle数据。
+            Executes a shuffle task for the given RDD partition and returns the server URI.
+            @Arguments
+            rdd_base - A reference-counted trait object that represents the RDD.
+            partition - The index of the partition to perform the shuffle task on.
+            @Returns
+            A string representing the server URI for the shuffle task.
+            @Examples
+            use std::sync::Arc;
+            use rdd::*;
+            // create an RDD
+            let rdd = sc.parallelize(vec![("a", 1), ("b", 2), ("c", 3)], 2);
+            // create a shuffle dependency
+            let shuffle_dep = ShuffleDependency::new(Arc::new(rdd.clone()), Box::new(|x| x as u64 % 2), 2);
+            // create a shuffle map task
+            let shuffle_map_task = ShuffleMapTask::new(0, Arc::new(shuffle_dep), Box::new(SumAggregator::new()));
+            // execute the shuffle map task for partition 0
+            let server_uri = shuffle_map_task.do_shuffle_task(Arc::new(rdd), 0);
+        */
         log::debug!(
             "executing shuffle task #{} for partition #{}",
             self.shuffle_id,
