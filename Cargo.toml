@@ -5,7 +5,6 @@ authors = ["raja <rajasekar3eg@gmail.com>"]
 edition = "2018"
 
 build = "build.rs"
-
 [lib]
 name = "vega"
 

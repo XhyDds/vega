@@ -3,3 +3,7 @@
 struct SerializedData{
     msg @0: Data;
 }
+
+struct Accum{
+    num @0: Int32;
+}
