@@ -11,14 +11,14 @@ fn main() -> Result<()> {
             .map(|s| s.to_string())
             .collect::<Vec<_>>()
     });
-    let lines = context.read_source(HdfsReaderConfig::new("/1.csv"), deserializer);
+    let lines = context.read_source(LocalFsReaderConfig::new("/home/lml/lab3-data.csv"), deserializer);
     println!("successfully read source");
     let line = lines.flat_map(Fn!(|lines: Vec<String>| {
         Box::new(lines.into_iter().map(|line| {
             let line = line.split(',').collect::<Vec<_>>();
             (
-                (line[0].to_string()),
-                (line[7].parse::<i64>().unwrap(), 1.0),
+                (line[5].to_string()),
+                (line[11].parse::<i64>().unwrap(), 1.0),
             )
         })) as Box<dyn Iterator<Item = _>>
     }));
