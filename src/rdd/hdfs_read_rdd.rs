@@ -1,4 +1,4 @@
-/* 
+/*
 use hdrs::{Client, OpenOptions};
 
 use crate::rdd::{Rdd, RddBase, RddVals};
@@ -48,18 +48,18 @@ impl HdfsReadRdd {
 */
 //! This module implements HDFS RDD from parallel collection RDD for reading contents from specific files
 use std::sync::{Arc, Weak};
-use hdrs::{Client, OpenOptions};
+//use hdrs::{Client, OpenOptions};
 
 use crate::context::Context;
 use crate::dependency::Dependency;
 use crate::error::{Error, Result};
+use crate::hosts::Hosts;
 use crate::rdd::{Rdd, RddBase, RddVals};
 use crate::serializable_traits::{AnyData, Data};
 use crate::split::Split;
-use crate::hosts::Hosts;
 use parking_lot::Mutex;
 use serde::Deserialize;
-use serde_derive::{Serialize};
+use serde_derive::Serialize;
 
 /// A collection of objects which can be sliced into partitions with a partitioning function.
 // pub trait Chunkable<D>
@@ -127,7 +127,7 @@ pub struct HdfsReadRdd<T> {
     name: Mutex<String>,
     rdd_vals: Arc<hdfsVals<T>>,
     nn: Mutex<String>,
-    isFile:  Mutex<bool>,
+    isFile: Mutex<bool>,
     path: Mutex<String>,
 }
 
@@ -148,7 +148,13 @@ impl<T: Data> Clone for HdfsReadRdd<T> {
 /// 产生一个hdfs对象
 /// hdfs对象包含一个Mutex<String>和一个Arc<hdfsVals<T>>
 impl<T: Data> HdfsReadRdd<T> {
-    pub fn new<I>(context: Arc<Context>, data: I, num_slices: usize, isFile: bool, path: String) -> Result<Self>
+    pub fn new<I>(
+        context: Arc<Context>,
+        data: I,
+        num_slices: usize,
+        isFile: bool,
+        path: String,
+    ) -> Result<Self>
     where
         I: IntoIterator<Item = T>,
     {
@@ -234,8 +240,7 @@ impl<T: Data> HdfsReadRdd<T> {
     }
 }
 
-impl<K: Data, V: Data> RddBase for HdfsReadRdd<(K, V)> 
-{
+impl<K: Data, V: Data> RddBase for HdfsReadRdd<(K, V)> {
     // (a1,a2,...),(b1,b2,...)-->((a1,b1),(a2,b2)...)
     fn cogroup_iterator_any(
         &self,
@@ -326,9 +331,7 @@ impl<T: Data> Rdd for HdfsReadRdd<T> {
         if let Some(s) = split.downcast_ref::<hdfsSplit<T>>() {
             Ok(s.iterator())
         } else {
-            panic!(
-                "Got split object from different concrete type other than hdfsSplit"
-            )
+            panic!("Got split object from different concrete type other than hdfsSplit")
         }
     }
 }

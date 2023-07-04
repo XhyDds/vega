@@ -201,6 +201,13 @@ pub(crate) trait NativeScheduler: Send + Sync {
             map_id,
             ..
         } = failed_vals;
+        let shuffle = self
+            .fetch_from_stage_cache(stage_id)
+            .shuffle_dependency
+            .clone()
+            .ok_or_else(|| Error::Other)
+            .expect("shuffle dependency not found");
+        let shuffle_id = shuffle.get_shuffle_id();
         // TODO: mapoutput tracker needs to be finished for this
         // let failed_stage = self.id_to_stage.lock().get(&stage_id).?.clone();
         let failed_stage = self.fetch_from_stage_cache(stage_id);
