@@ -43,26 +43,31 @@
     泰勒展开级数求e,使用高精度库num_bigfloat
  */
 use vega::*;
-use num_bigfloat::BigFloat;
-use num_bigfloat::ONE;
-use num_bigfloat::ZERO;
+use astro_float::{ctx::Context as ctx, Consts, RoundingMode, BigFloat};
 fn main() -> Result<()> {
     let sc = Context::new()?;
-    let col = sc.make_rdd((0..700).collect::<Vec<_>>(), 3);
+    let col = sc.make_rdd((0..7000).collect::<Vec<_>>(), 3);
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
-    // let y: f64 = rng.gen();
+    let p=1024+8;
+    let rm=RoundingMode::ToEven;
+    let mut ctx = ctx::new(1024, RoundingMode::ToEven, 
+        Consts::new().expect("Contants cache initialized"));
+    let ONE = BigFloat::from_word(1, 1);
+
+
     let item_iter = col.map(Fn!(|i|{
-        let mut frac=ONE.clone();
+        let mut frac=BigFloat::from_word(1,1);
+
+        let f_k=BigFloat::from(i);
         for k in 1..=i{
-            let f_k=BigFloat::from_i32(k);
-            frac=frac.mul(&ONE.div(&f_k));
+            frac=frac.mul(&ONE.div(&f_k,p,rm),p,rm);
         }
         frac
     }));
     // let fraction = item_iter.map(Fn!(|i|1 as f64 / i as f64));
     let res=item_iter.fold(ZERO, Fn!(|acc,n|{
-        (&acc as &BigFloat).add(&n)
+        (&acc as &BigFloat).add(&n,p,rm)
     }));
-    println!("result: {}", res.unwrap());
+    println!("result: {:?}", res);
     Ok(())
 }
