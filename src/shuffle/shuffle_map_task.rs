@@ -11,7 +11,7 @@ use crate::shuffle::*;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
-//整个类用于存储ShuffleMapTask的信息
+//整个类用于存储ShuffleMapTask的各项信息
 pub(crate) struct ShuffleMapTask {
     pub task_id: usize,
     pub run_id: usize,

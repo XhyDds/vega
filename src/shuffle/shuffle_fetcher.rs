@@ -14,12 +14,20 @@ pub(crate) struct ShuffleFetcher;
 
 impl ShuffleFetcher {
     pub async fn fetch<K: Data, V: Data>(
+        //Data是trait
         shuffle_id: usize,
         reduce_id: usize,
     ) -> Result<impl Iterator<Item = (K, V)>> {
         //该函数并行地从多个服务器上的shuffle文件中读入数据（数量为分区数*reduce任务数，路径为`shuffle_uri/input_id/reduce_id`），并返回反序列化后的结果数组迭代器
         //该函数的输入参数包括shuffle_id和reduce_id，这两个参数用于确定要获取的shuffle数据的uri：
         //一个shuffle_id对应多个uri，一个uri对应多个index（意义是input_id），再从路径`shuffle_uri/input_id/reduce_id`读入数据
+
+        /*
+            其执行过程如下：
+            1. 我们知道，一个shuffle_id对应的任务分成多部分散布在各机器上执行，每台机器有URI，一台机器同时执行多个部分，按照shuffle_id获取其对应的URI得一数组，又按URI对数组下标进行分组，得到uri->[index1,index2,...]的（K,V）对。完成后，将这些（K,V）对装入队列。
+            2. 然后，该函数为每个服务器URI生成一个异步任务。每个异步任务都会从服务器队列中获取某URI指定的input_id（即原来的index元组），并令HTTP客户端从shuffle_uri/input_id/reduce_id获取数据，加进shuffle_chunks里面并返回
+            3. 合并所有异步任务结果
+        */
         log::debug!("inside fetch function");
         let mut inputs_by_uri = HashMap::new();
         //首先根据shuffle_id，获取对应的服务器上的URI列表
@@ -116,7 +124,7 @@ impl ShuffleFetcher {
             tasks.push(tokio::spawn(task));
         }
         //最后一步，合并所有异步任务结果
-        log::debug!("total_results fetch results: {}", total_results);//结果数
+        log::debug!("total_results fetch results: {}", total_results); //结果数
         let task_results = future::join_all(tasks.into_iter()).await;
         let results = task_results.into_iter().fold(
             Ok(Vec::<(K, V)>::with_capacity(total_results)),
