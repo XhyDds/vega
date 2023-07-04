@@ -107,7 +107,7 @@ where
         S: NativeScheduler,
     {
         let run_id = scheduler.get_next_job_id(); //run_id赋值为scheduler的next_job_id
-        println!("scheduler get job_id complete！");
+                                                  // println!("scheduler get job_id complete！");
         let final_stage = scheduler
             .new_stage(final_rdd.clone().get_rdd_base(), None)
             .await?;

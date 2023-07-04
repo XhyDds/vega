@@ -372,13 +372,14 @@ impl DistributedScheduler {
         event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
         task: TaskOption,
         target_executor: SocketAddrV4,
+        map_id: usize,
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
         let reason = TastEndReason::FetchFailed(FetchFailedVals {
             server_uri: target_executor.to_string(),
             shuffle_id: 0,
-            map_id: task.get_task_id(),
+            map_id: map_id,
             reduce_id: 0, //用不到
         });
         println!(
@@ -445,7 +446,7 @@ impl NativeScheduler for DistributedScheduler {
     fn submit_task<T: Data, U: Data, F>(
         &self,
         task: TaskOption,
-        _id_in_job: usize,
+        id_in_job: usize,
         target_executor: SocketAddrV4,
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
@@ -456,6 +457,16 @@ impl NativeScheduler for DistributedScheduler {
         }
         log::debug!("inside submit task");
         let event_queues_clone = self.event_queues.clone();
+        // let shuffle = self
+        //     .stage_cache
+        //     .get(&task.get_stage_id())
+        //     .unwrap()
+        //     .clone()
+        //     .shuffle_dependency
+        //     .clone()
+        //     .ok_or_else(|| Error::Other)
+        //     .expect("shuffle dependency not found");
+        // let shuffle_id = shuffle.get_shuffle_id();
         tokio::spawn(async move {
             let mut num_retries = 0;
             loop {
@@ -502,22 +513,13 @@ impl NativeScheduler for DistributedScheduler {
                         // 五次后不再尝试发送，将任务标记为failed，等待发送给其他executor
                         if num_retries > 5 {
                             //重新发送
-                            let shuffle_id = self
-                                .stage_cache
-                                .get(&task.get_stage_id())
-                                .unwrap()
-                                .shuffle_dependency
-                                .get_shuffle_id();
-                            log::error!(
-                                "{} connection failed:\nshuffle:{}",
-                                task.get_task_id(),
-                                ///here
-                                shuffle_id
-                            ); //
+                            // let shuffle_id = 0;
+                            log::error!("{} connection failed:\n", task.get_task_id()); //
                             DistributedScheduler::task_failed::<T, U, F>(
                                 event_queues_clone,
                                 task,
                                 target_executor,
+                                id_in_job,
                             )
                             .await;
                             //清除executor(?)

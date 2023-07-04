@@ -17,12 +17,12 @@ impl ShuffleFetcher {
         shuffle_id: usize,
         reduce_id: usize,
     ) -> Result<impl Iterator<Item = (K, V)>> {
-        //这段代码实现了一个异步的数据获取函数，该函数从指定的服务器上获取数据，并以迭代器的形式返回。
-        //该函数的输入参数包括shuffle_id和reduce_id，这两个参数用于确定要获取的shuffle数据的uri。
-        //最后，所有结果被合并成一个迭代器，并返回给调用者。
+        //该函数并行地从多个服务器上的shuffle文件中读入数据（数量为分区数*reduce任务数，路径为`shuffle_uri/input_id/reduce_id`），并返回反序列化后的结果数组迭代器
+        //该函数的输入参数包括shuffle_id和reduce_id，这两个参数用于确定要获取的shuffle数据的uri：
+        //一个shuffle_id对应多个uri，一个uri对应多个index（意义是input_id），再从路径`shuffle_uri/input_id/reduce_id`读入数据
         log::debug!("inside fetch function");
         let mut inputs_by_uri = HashMap::new();
-        //首先获取服务器的URI列表
+        //首先根据shuffle_id，获取对应的服务器上的URI列表
         let server_uris = env::Env::get()
             .map_output_tracker
             .get_server_uris(shuffle_id)
@@ -38,24 +38,30 @@ impl ShuffleFetcher {
         //接下来，该函数将服务器URI对应服务器id打包成一个元组，并将它们添加到一个服务器队列中。
         for (index, server_uri) in server_uris.into_iter().enumerate() {
             inputs_by_uri
-                .entry(server_uri)
+                .entry(server_uri) //注：entry是<K,V>的意思
                 .or_insert_with(Vec::new)
                 .push(index);
-        } //get map:uri->index，按URI分组
+        } //这段代码等价于：向键值server_uri索引的Vec中插入index（若为空则插入一个空的Vec）
+          // 那么现在我们获得了一个hashmap：inputs_by_uri，其映射关系是uri->index，即将server_uris标号0~len-1，按URI值将这些标号分组
+
+        //所以，一个shuffle_task（以id辨识）对应多个shuffle_uri，每个shuffle_uri又因为分区等原因同时执行同一任务多部分
 
         let mut server_queue = Vec::new();
         let mut total_results = 0;
         for (key, value) in inputs_by_uri {
             total_results += value.len();
             server_queue.push((key, value));
-        } //装填server_queue，uri->indexs
+        } //装填server_queue，按key遍历map，将每一对（K,V）（即uri->[index1,index2,...]装入队列）
         log::debug!(
             "servers for shuffle id #{:?} & reduce id #{}: {:?}",
             shuffle_id,
             reduce_id,
             server_queue
         );
-        //然后，该函数为每个服务器URI生成一个异步任务，并等待所有任务完成。
+        //从这里开始的代码段，可认为中间变量还有用的只剩下server_queue，其它变量已经完成了历史使命
+
+        //然后，该函数为每个服务器URI生成一个异步任务，每个异步任务都会从服务器队列中获取某URI指定的input_id（即原来的index元组），
+        //并令HTTP客户端从shuffle_uri/input_id/reduce_id获取数据，加进shuffle_chunks里面
         let num_tasks = server_queue.len(); //uri数
         let server_queue = Arc::new(Mutex::new(server_queue));
         let failure = Arc::new(AtomicBool::new(false));
@@ -65,15 +71,17 @@ impl ShuffleFetcher {
             let failure = failure.clone();
             // spawn a future for each expected result set
             let task = async move {
-                //每个异步任务都会从服务器队列中获取下一个元组，并使用HTTP客户端从服务器中获取数据
+                //每个异步任务都会从服务器队列中获取某URI指定的index元组，并使用HTTP客户端从服务器中获取数据
                 let client = Client::builder().http2_only(true).build_http::<Body>();
                 let mut lock = server_queue.lock().await;
                 if let Some((server_uri, input_ids)) = lock.pop() {
+                    //从队列中取出一个(K, [index1,index2,...])
                     let server_uri = format!("{}/shuffle/{}", server_uri, shuffle_id);
                     let mut chunk_uri_str = String::with_capacity(server_uri.len() + 12);
-                    chunk_uri_str.push_str(&server_uri);
+                    chunk_uri_str.push_str(&server_uri); //String类型的server_uri
                     let mut shuffle_chunks = Vec::with_capacity(input_ids.len());
                     for input_id in input_ids {
+                        //URI对应的index1,index2,...，即分区号
                         if failure.load(atomic::Ordering::Acquire) {
                             // Abort early since the work failed in an other future
                             return Err(ShuffleError::Other);
@@ -84,7 +92,7 @@ impl ShuffleFetcher {
                             &mut chunk_uri_str,
                             input_id,
                             reduce_id,
-                        )?;
+                        )?; //这个文件是以input_id和reduce_id命名的！1个shuffle task会产生分区数*reduce任务数个文件
                         let data_bytes = {
                             let res = client.get(chunk_uri).await?;
                             hyper::body::to_bytes(res.into_body()).await
@@ -99,7 +107,7 @@ impl ShuffleFetcher {
                         }
                     }
                     Ok::<Box<dyn Iterator<Item = (K, V)> + Send>, _>(Box::new(
-                        shuffle_chunks.into_iter().flatten(), //flatten函数将多层嵌套的数组变成单层的普通数组（输入输出都是迭代器）
+                        shuffle_chunks.into_iter().flatten(), //flatten函数令多层嵌套的数组层数减一（输入输出都是迭代器）
                     ))
                 } else {
                     Ok::<Box<dyn Iterator<Item = (K, V)> + Send>, _>(Box::new(std::iter::empty()))
@@ -107,7 +115,8 @@ impl ShuffleFetcher {
             };
             tasks.push(tokio::spawn(task));
         }
-        log::debug!("total_results fetch results: {}", total_results);
+        //最后一步，合并所有异步任务结果
+        log::debug!("total_results fetch results: {}", total_results);//结果数
         let task_results = future::join_all(tasks.into_iter()).await;
         let results = task_results.into_iter().fold(
             Ok(Vec::<(K, V)>::with_capacity(total_results)),
@@ -124,12 +133,13 @@ impl ShuffleFetcher {
                 }
             },
         )?; //此句功能是合并所有结果到curr这个Vec中
-            /* 注：fold函数原型为：fn fold<B, F>(self, init: B, f: F) -> B，它从左到右对数组里每个元素v应用init=f(init,v)
-            如此示例：以下代码是对数组求和：
-                let a = [1, 2, 3];
-                let sum = a.iter().fold(0, |acc, x| acc + x);
-                assert_eq!(sum, 6);
-             */
+
+        /* 注：fold函数原型为：fn fold<B, F>(self, init: B, f: F) -> B，它从左到右对数组里每个元素v应用init=f(init,v)
+        如此示例：以下代码是对数组求和：
+            let a = [1, 2, 3];
+            let sum = a.iter().fold(0, |acc, x| acc + x);
+            assert_eq!(sum, 6);
+         */
         Ok(results.into_iter())
     }
 
