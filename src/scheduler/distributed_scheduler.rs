@@ -43,7 +43,7 @@ pub(crate) struct DistributedScheduler {
     attempt_id: Arc<AtomicUsize>,
     resubmit_timeout: u128,
     poll_timeout: u64,
-    event_queues: EventQueue,
+    event_queues: EventQueue, //事件队列（元素为：{run_id,values(?)}，run_id由job_tracker提供）
     next_job_id: Arc<AtomicUsize>,
     next_run_id: Arc<AtomicUsize>,
     next_task_id: Arc<AtomicUsize>,
@@ -53,14 +53,14 @@ pub(crate) struct DistributedScheduler {
     cache_locs: Arc<DashMap<usize, Vec<Vec<Ipv4Addr>>>>,
     master: bool,
     framework_name: String,
-    is_registered: bool, // NOTE: check if it is necessary
-    active_jobs: HashMap<usize, Job>,
-    active_job_queue: Vec<Job>,
+    is_registered: bool,              // NOTE: check if it is necessary
+    active_jobs: HashMap<usize, Job>, //实际没有使用
+    active_job_queue: Vec<Job>,       //实际没有使用
     taskid_to_jobid: HashMap<String, usize>,
     taskid_to_slaveid: HashMap<String, String>,
-    job_tasks: HashMap<usize, HashSet<String>>,
+    job_tasks: HashMap<usize, HashSet<String>>, //实际没有使用
     slaves_with_executors: HashSet<String>,
-    server_uris: Arc<Mutex<VecDeque<SocketAddrV4>>>,
+    server_uris: Arc<Mutex<VecDeque<SocketAddrV4>>>, //server_uri队列(task未pin时，循环取出地址分配
     port: u16,
     map_output_tracker: MapOutputTracker,
     // NOTE: fix proper locking mechanism
@@ -272,6 +272,7 @@ impl DistributedScheduler {
                             .await?;
                     }
                     FetchFailed(failed_vals) => {
+                        log::error!("{}:fetch failed", evt.task.get_stage_id()); //FIXME
                         self.on_event_failure(jt.clone(), failed_vals, evt.task.get_stage_id())
                             .await;
                         fetch_failure_duration = start.elapsed();
@@ -370,17 +371,23 @@ impl DistributedScheduler {
     async fn task_failed<T: Data, U: Data, F>(
         event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
         task: TaskOption,
-        _target_port: u16,
+        target_executor: SocketAddrV4,
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
         let reason = TastEndReason::FetchFailed(FetchFailedVals {
-            server_uri: format!("error"),
+            server_uri: target_executor.to_string(),
             shuffle_id: 0,
-            map_id: 0,
-            reduce_id: 0,
+            map_id: task.get_task_id(),
+            reduce_id: 0, //用不到
         });
-        let result = String::from("Hello");
+        println!(
+            "server_uri:{}\nshuffle_id:{}\nmap_id:{}\n",
+            target_executor.to_string(),
+            task.get_stage_id(),
+            task.get_task_id()
+        );
+        let result = String::from("Error");
         match task {
             TaskOption::ResultTask(tsk) => {
                 if let Ok(task_final) = tsk.downcast::<ResultTask<T, U, F>>() {
@@ -492,12 +499,25 @@ impl NativeScheduler for DistributedScheduler {
                     }
                     Err(_) => {
                         // 允许错误五次，每次等待之后重新发送请求
+                        // 五次后不再尝试发送，将任务标记为failed，等待发送给其他executor
                         if num_retries > 5 {
                             //重新发送
+                            let shuffle_id = self
+                                .stage_cache
+                                .get(&task.get_stage_id())
+                                .unwrap()
+                                .shuffle_dependency
+                                .get_shuffle_id();
+                            log::error!(
+                                "{} connection failed:\nshuffle:{}",
+                                task.get_task_id(),
+                                ///here
+                                shuffle_id
+                            ); //
                             DistributedScheduler::task_failed::<T, U, F>(
                                 event_queues_clone,
                                 task,
-                                target_executor.port(),
+                                target_executor,
                             )
                             .await;
                             //清除executor(?)
@@ -557,6 +577,7 @@ impl NativeScheduler for DistributedScheduler {
     }
 
     /// 由shuffle获取shuffle_map_stage
+    /// 把一个stage分配给一个shuffle
     /// 和local版本一样
     async fn get_shuffle_map_stage(&self, shuf: Arc<dyn ShuffleDependencyTrait>) -> Result<Stage> {
         log::debug!("getting shuffle map stage");

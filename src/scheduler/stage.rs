@@ -21,7 +21,7 @@ use std::sync::Arc;
 pub(crate) struct Stage {
     pub id: usize,
     pub num_partitions: usize,
-    pub shuffle_dependency: Option<Arc<dyn ShuffleDependencyTrait>>,
+    pub shuffle_dependency: Option<Arc<dyn ShuffleDependencyTrait>>, //所依赖的shuffle
     pub is_shuffle_map: bool,
     pub rdd: Arc<dyn RddBase>,
     pub parents: Vec<Stage>,
@@ -109,6 +109,7 @@ impl Stage {
         self.output_locs[partition].push(host);
     }
 
+    //
     pub fn remove_output_loc(&mut self, partition: usize, host: &str) {
         let prev_vec = self.output_locs[partition].clone();
         // new_vec为prev_vec中除host外的所有元素
