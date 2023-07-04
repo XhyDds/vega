@@ -201,7 +201,6 @@ pub(crate) trait NativeScheduler: Send + Sync {
             map_id,
             ..
         } = failed_vals;
-
         // TODO: mapoutput tracker needs to be finished for this
         // let failed_stage = self.id_to_stage.lock().get(&stage_id).?.clone();
         let failed_stage = self.fetch_from_stage_cache(stage_id);
@@ -209,7 +208,10 @@ pub(crate) trait NativeScheduler: Send + Sync {
         jt.running.lock().await.remove(&failed_stage);
         jt.failed.lock().await.insert(failed_stage);
         // FIXME: logging
+        // 函数出错，FIXYOU.
+        println!("here");
         self.remove_output_loc_from_stage(shuffle_id, map_id, &server_uri);
+        println!("here2");
         self.unregister_map_output(shuffle_id, map_id, server_uri);
         jt.failed
             .lock()
@@ -632,6 +634,7 @@ macro_rules! impl_common_scheduler_funcs {
                 .register_map_outputs(shuffle_id, locs)
         }
 
+        // Error: thread 'main' panicked at 'called `Option::unwrap()` on a `None` value'
         #[inline]
         fn remove_output_loc_from_stage(&self, shuffle_id: usize, map_id: usize, server_uri: &str) {
             self.shuffle_to_map_stage

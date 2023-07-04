@@ -52,29 +52,30 @@ use hdrs::{Client, OpenOptions};
 
 use crate::context::Context;
 use crate::dependency::Dependency;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::rdd::{Rdd, RddBase, RddVals};
 use crate::serializable_traits::{AnyData, Data};
 use crate::split::Split;
+use crate::hosts::Hosts;
 use parking_lot::Mutex;
 use serde::Deserialize;
 use serde_derive::{Serialize};
 
 /// A collection of objects which can be sliced into partitions with a partitioning function.
-pub trait Chunkable<D>
-where
-    D: Data,
-{
-    fn slice_with_set_parts(self, parts: usize) -> Vec<Arc<Vec<D>>>;
+// pub trait Chunkable<D>
+// where
+//     D: Data,
+// {
+//     fn slice_with_set_parts(self, parts: usize) -> Vec<Arc<Vec<D>>>;
 
-    fn slice(self) -> Vec<Arc<Vec<D>>>
-    where
-        Self: Sized,
-    {
-        let as_many_parts_as_cpus = num_cpus::get();
-        self.slice_with_set_parts(as_many_parts_as_cpus)
-    }
-}
+//     fn slice(self) -> Vec<Arc<Vec<D>>>
+//     where
+//         Self: Sized,
+//     {
+//         let as_many_parts_as_cpus = num_cpus::get();
+//         self.slice_with_set_parts(as_many_parts_as_cpus)
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct hdfsSplit<T> {
@@ -125,6 +126,9 @@ pub struct HdfsReadRdd<T> {
     #[serde(skip_serializing, skip_deserializing)]
     name: Mutex<String>,
     rdd_vals: Arc<hdfsVals<T>>,
+    nn: Mutex<String>,
+    isFile:  Mutex<bool>,
+    path: Mutex<String>,
 }
 
 impl<T: Data> Clone for HdfsReadRdd<T> {
@@ -132,6 +136,9 @@ impl<T: Data> Clone for HdfsReadRdd<T> {
         HdfsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
             rdd_vals: self.rdd_vals.clone(),
+            nn: Mutex::new(self.nn.lock().clone()),
+            isFile: Mutex::new(self.isFile.lock().clone()),
+            path: Mutex::new(self.path.lock().clone()),
         }
     }
 }
@@ -141,11 +148,16 @@ impl<T: Data> Clone for HdfsReadRdd<T> {
 /// 产生一个hdfs对象
 /// hdfs对象包含一个Mutex<String>和一个Arc<hdfsVals<T>>
 impl<T: Data> HdfsReadRdd<T> {
-    pub fn new<I>(context: Arc<Context>, data: I, num_slices: usize) -> Self
+    pub fn new<I>(context: Arc<Context>, data: I, num_slices: usize, isFile: bool, path: String) -> Result<Self>
     where
         I: IntoIterator<Item = T>,
     {
-        HdfsReadRdd {
+        let nn = match Hosts::get() {
+            Ok(hosts) => hosts.master.to_string(),
+            Err(_) => String::from(""),
+        };
+
+        Ok(HdfsReadRdd {
             name: Mutex::new("hdfs_collection".to_owned()),
             rdd_vals: Arc::new(hdfsVals {
                 //downgrade()方法返回一个Weak<T>类型的对象，Weak<T>是一个弱引用，不会增加引用计数
@@ -157,25 +169,28 @@ impl<T: Data> HdfsReadRdd<T> {
                 //分区数
                 num_slices,
             }),
-        }
+            nn: Mutex::new(nn),
+            isFile: Mutex::new(isFile),
+            path: Mutex::new(path),
+        })
     }
 
-    pub fn from_chunkable<C>(context: Arc<Context>, data: C) -> Self
-    where
-        C: Chunkable<T>,
-    {
-        let splits_ = data.slice();
-        let rdd_vals = hdfsVals {
-            context: Arc::downgrade(&context),
-            vals: Arc::new(RddVals::new(context.clone())),
-            num_slices: splits_.len(),
-            splits_,
-        };
-        HdfsReadRdd {
-            name: Mutex::new("parallel_collection".to_owned()),
-            rdd_vals: Arc::new(rdd_vals),
-        }
-    }
+    // pub fn from_chunkable<C>(context: Arc<Context>, data: C) -> Self
+    // where
+    //     C: Chunkable<T>,
+    // {
+    //     let splits_ = data.slice();
+    //     let rdd_vals = hdfsVals {
+    //         context: Arc::downgrade(&context),
+    //         vals: Arc::new(RddVals::new(context.clone())),
+    //         num_slices: splits_.len(),
+    //         splits_,
+    //     };
+    //     HdfsReadRdd {
+    //         name: Mutex::new("parallel_collection".to_owned()),
+    //         rdd_vals: Arc::new(rdd_vals),
+    //     }
+    // }
 
     /**
      * slice 接收data和分区数量 num_slices
@@ -252,7 +267,8 @@ impl<T: Data> RddBase for HdfsReadRdd<T> {
     }
 
     fn get_dependencies(&self) -> Vec<Dependency> {
-        Vec<Dependency(NarrowDependency)>::new()
+        // Vec::<Dependency(NarrowDependency)>::new()
+        self.rdd_vals.vals.dependencies.clone()
     }
 
     fn splits(&self) -> Vec<Box<dyn Split>> {
@@ -296,6 +312,9 @@ impl<T: Data> Rdd for HdfsReadRdd<T> {
         Arc::new(HdfsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
             rdd_vals: self.rdd_vals.clone(),
+            nn: Mutex::new(self.nn.lock().clone()),
+            isFile: Mutex::new(self.isFile.lock().clone()),
+            path: Mutex::new(self.path.lock().clone()),
         })
     }
 

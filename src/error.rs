@@ -90,6 +90,9 @@ pub enum Error {
     #[error("failed to parse slave address {0}")]
     ParseHostAddress(String),
 
+    #[error("failed to connect to hdfs namenode: {0}")]
+    HdfsConnect(String),
+
     #[error("failed reading from input source")]
     InputRead(#[source] std::io::Error),
 

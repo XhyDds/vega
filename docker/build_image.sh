@@ -12,8 +12,5 @@ PACKAGE="vega:${VERSION}"
 cd $SCRIPT_PATH && cd ..
 echo "work dir: $(pwd)"
 
-RUST_VERSION="nightly"
-echo "rust version: $RUST_VERSION"
-
 echo "building $PACKAGE..."
-docker build --build-arg RUST_VERSION=$RUST_VERSION -t $PACKAGE -f docker/Dockerfile --force-rm .
+docker build -t $PACKAGE -f docker/Dockerfile .

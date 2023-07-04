@@ -49,6 +49,8 @@ mod zip_rdd;
 pub use zip_rdd::*;
 mod union_rdd;
 pub use union_rdd::*;
+mod hdfs_read_rdd;
+pub use hdfs_read_rdd::*;
 // Values which are needed for all RDDs
 #[derive(Serialize, Deserialize)]
 pub(crate) struct RddVals {
