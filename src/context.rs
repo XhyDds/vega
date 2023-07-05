@@ -273,10 +273,10 @@ impl Context {
         let job_work_dir = env::Configuration::get()
             .local_dir
             .join(format!("ns-session-{}", job_id));
-        // let job_work_dir_str = job_work_dir
-        //     .to_str()
-        //     .ok_or_else(|| Error::PathToString(job_work_dir.clone()))?;
-        // println!("{}", job_work_dir_str);
+        let job_work_dir_str = job_work_dir
+            .to_str()
+            .ok_or_else(|| Error::PathToString(job_work_dir.clone()))?;
+        println!("{}", job_work_dir_str);
         let binary_path = std::env::current_exe().map_err(|_| Error::CurrentBinaryPath)?;
         let binary_path_str = binary_path
             .to_str()
@@ -308,36 +308,11 @@ impl Context {
             address_map.push(SocketAddrV4::new(address_ip, port));
             println!("{}", key_path);
 
-            //test
-            // let job_work_dir_str = &job_work_dir_str.replace(
-            //     env::Configuration::get()
-            //         .local_dir
-            //         .to_str()
-            //         .ok_or_else(|| Error::PathToString(job_work_dir.clone()))?,
-            //     &format!(
-            //         "{}{}{}",
-            //         "/home/",
-            //         slave.ip.as_str().split('@').nth(0).unwrap()
-            //     ),
-            // );
-
             let work_dir = format!(
-                "{}{}{}",
+                "{}{}",
                 "/home/",
-                slave.ip.as_str().split('@').nth(0).unwrap(),
-                "/vega_work_dir"
+                slave.ip.as_str().split('@').nth(0).unwrap()
             );
-            let job_work_dir_str = format!("{}{}", work_dir, format!("/ns-session-{}", job_id));
-            println!("{}", job_work_dir_str);
-
-            // Create work dir:
-            Command::new("ssh")
-                .args(&["-i", key_path, address, "mkdir", &work_dir])
-                .output()
-                .map_err(|e| Error::CommandOutput {
-                    source: e,
-                    command: "ssh mkdir".into(),
-                })?;
 
             Command::new("ssh")
                 .args(&["-i", key_path, address, "mkdir", &job_work_dir_str])
@@ -350,7 +325,7 @@ impl Context {
             // Copy conf file to remote:
             //创建worker_config(config.toml)
             Context::create_workers_config_file(address_ip, port, conf_path)?;
-            let remote_path = format!("{}:{}/config.toml", address, work_dir);
+            let remote_path = format!("{}:{}/config.toml", address, job_work_dir_str);
             Command::new("scp")
                 .args(&["-i", key_path, conf_path, &remote_path])
                 .output()
@@ -373,21 +348,21 @@ impl Context {
                 })?;
 
             // Copy hosts.conf:
-            // 赋值hosts.conf到slave中(强制覆盖)
-            // let hosts_path = std::env::home_dir()
-            //     .ok_or(Error::NoHome)?
-            //     .join("hosts.conf");
-            // let hosts_path_str = hosts_path.to_str().unwrap();
-            // let remote_hosts_path = format!("{}:{}/hosts.conf", address, job_work_dir_str);
-            // println!("{}", hosts_path_str);
-            // println!("{}", remote_hosts_path);
-            // Command::new("scp")
-            //     .args(&["-f", "-i", key_path, &hosts_path_str, &remote_hosts_path])
-            //     .output()
-            //     .map_err(|e| Error::CommandOutput {
-            //         source: e,
-            //         command: "scp executor".into(),
-            //     })?;
+            // 赋值hosts.conf到slave/~/中(强制覆盖)
+            let hosts_path = std::env::home_dir()
+                .ok_or(Error::NoHome)?
+                .join("hosts.conf");
+            let hosts_path_str = hosts_path.to_str().unwrap();
+            let remote_hosts_path = format!("{}:{}/hosts.conf", address, work_dir);
+            println!("{}", hosts_path_str);
+            println!("{}", remote_hosts_path);
+            Command::new("scp")
+                .args(&["-f", "-i", key_path, &hosts_path_str, &remote_hosts_path])
+                .output()
+                .map_err(|e| Error::CommandOutput {
+                    source: e,
+                    command: "scp executor".into(),
+                })?;
 
             // Deploy a remote slave:
             //通过ssh控制slave，run程序
