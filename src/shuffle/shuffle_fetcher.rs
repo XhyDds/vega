@@ -102,7 +102,7 @@ impl ShuffleFetcher {
                             reduce_id,
                         )?; //这个文件是以input_id和reduce_id命名的！1个shuffle task会产生分区数*reduce任务数个文件
                         let data_bytes = {
-                            let res = client.get(chunk_uri).await?;
+                            let res = client.get(chunk_uri).await?; //这里get会把shuffle文件给读出来
                             hyper::body::to_bytes(res.into_body()).await
                         }; //通过http连接从服务器获取数据
                            //如果获取数据成功，则将其解析为(K, V)元组，并将它们添加到shuffle_chunks向量中。

@@ -10,3 +10,5 @@
 .vscode/
 
 perf.data*
+
+/docker/monitoring/grafana/data/
