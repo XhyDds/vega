@@ -23,3 +23,14 @@
 7. 通过`cargo run`（main.rs文件已添加，为make_rdd.rs内容）或`cargo run --example make_rdd`(测试文件在"../../examples"文件夹中，这里以make_rdd.rs示例)
 
 **欢迎提出问题与补充**
+
+## 条件编译使用
+在Cargo.toml
+```
+[features]
+default=["hdrs_valid"]
+hdrs_valid=[]
+# aws_connectors = ["rusoto_core", "rusoto_s3"]
+```
+在default前加'#'表示注释，使得条件编译生效，忽略hdrs的编译.
+去除'#'表示有hdrs_valid可用，条件编译会使得hdrs相关的模块正常编译.
