@@ -22,7 +22,7 @@ fn main() -> Result<()> {
             .map(|s| s.to_string())
             .collect::<Vec<_>>()
     });
-    let lines = context.read_source(LocalFsReaderConfig::new("/home/lml/1.csv"), deserializer);
+    let lines = context.read_source(HdfsReaderConfig::new("/csv"), deserializer);
     println!("successfully read source");
     let line = lines.flat_map(Fn!(|lines: Vec<String>| {
         Box::new(lines.into_iter().map(|line| {
