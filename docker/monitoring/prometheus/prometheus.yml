@@ -1,9 +1,15 @@
 scrape_configs:
-
   - job_name: vega
     scrape_interval: 5s
     static_configs:
       - targets: ['host.docker.internal:8080']
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+  # 采集node exporter监控数据
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
 
 rule_files:
   - 'rules.yml'
