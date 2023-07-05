@@ -16,7 +16,8 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::{Handle, Runtime};
 
 /// The key is: {shuffle_id}/{input_id}/{reduce_id}
-type ShuffleCache = Arc<DashMap<(usize, usize, usize), Vec<u8>>>;
+//type ShuffleCache = Arc<DashMap<(usize, usize, usize), Vec<u8>>>;
+type ShuffleCache = Arc<DashMap<(usize, usize), Vec<Vec<u8>>>>;
 
 const ENV_VAR_PREFIX: &str = "VEGA_";
 pub(crate) const THREAD_PREFIX: &str = "_VEGA";
@@ -170,6 +171,7 @@ pub(crate) struct Configuration {
     pub shuffle_svc_port: Option<u16>,
     pub slave: Option<SlaveConfig>,
     pub loggin: LogConfig,
+    pub is_sort_shuffle: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -268,6 +270,7 @@ impl Default for Configuration {
                 slave = None;
             }
         }
+        let is_sort_shuffle = true;
         //创建config
         Configuration {
             is_driver: is_master,
@@ -281,6 +284,7 @@ impl Default for Configuration {
             //设置suffle_svc_port
             shuffle_svc_port: config.shuffle_service_port,
             slave,
+            is_sort_shuffle,
         }
     }
 }
