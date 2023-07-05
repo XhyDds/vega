@@ -346,7 +346,7 @@ mod tests {
         let data = b"some random bytes".iter().copied().collect::<Vec<u8>>();
         {
             //env::SHUFFLE_CACHE.insert((2, 1, 0), data.clone());
-            env::SHUFFLE_CACHE.insert((2, 0), data.clone());
+            env::SHUFFLE_CACHE.insert((2, 0), vec![data.clone()]);
         }
         let url = format!(
             "http://{}:{}/shuffle/2/1/0",

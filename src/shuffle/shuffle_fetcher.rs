@@ -195,7 +195,7 @@ mod tests {
             let data = vec![(0i32, "example data".to_string())];
             let serialized_data = bincode::serialize(&data).unwrap();
             //env::SHUFFLE_CACHE.insert((11000, 0, 11001), serialized_data);
-            env::SHUFFLE_CACHE.insert((11000, 11001), serialized_data);
+            env::SHUFFLE_CACHE.insert((11000, 11001), vec![serialized_data]);
         }
 
         let result: Vec<(i32, String)> = ShuffleFetcher::fetch(11000, 11001)
@@ -221,7 +221,7 @@ mod tests {
             let data = "corrupted data";
             let serialized_data = bincode::serialize(&data).unwrap();
             //env::SHUFFLE_CACHE.insert((10000, 0, 10001), serialized_data);
-            env::SHUFFLE_CACHE.insert((10000, 10001), serialized_data);
+            env::SHUFFLE_CACHE.insert((10000, 10001), vec![serialized_data]);
         }
 
         let err = ShuffleFetcher::fetch::<i32, String>(10000, 10001).await;
