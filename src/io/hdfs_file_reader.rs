@@ -1,25 +1,25 @@
+#[cfg(any(hdrs))]
 use hdrs::{Client, OpenOptions};
 use std::fs;
 use std::io::{BufReader, Read};
-use core::panic;
 use std::marker::PhantomData;
-use std::path::{Path, PathBuf};
 use std::net::{Ipv4Addr, SocketAddrV4};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::context::Context;
 use crate::dependency::Dependency;
 use crate::error::{Error, Result};
+use crate::hosts::Hosts;
 use crate::io::*;
 use crate::rdd::{MapPartitionsRdd, MapperRdd, Rdd, RddBase};
 use crate::serializable_traits::{AnyData, Data, SerFunc};
 use crate::split::Split;
 use crate::Fn;
-use crate::hosts::Hosts;
 use log::debug;
 use rand::prelude::*;
 use serde_derive::{Deserialize, Serialize};
-
+#[cfg(any(hdrs))]
 pub struct HdfsReaderConfig {
     filter_ext: Option<std::ffi::OsString>,
     expect_dir: bool,
@@ -27,20 +27,21 @@ pub struct HdfsReaderConfig {
     dir_path: PathBuf,
     executor_partitions: Option<u64>,
 }
-
+#[cfg(any(hdrs))]
 impl HdfsReaderConfig {
     /// Read all the files from a directory or a path.
     pub fn new<T: Into<PathBuf>>(path: T) -> HdfsReaderConfig {
-        let nn = match Hosts::get() {//namenode默认是master
+        let nn = match Hosts::get() {
+            //namenode默认是master
             //Ok(hosts) => hosts.master.to_string(),
             Ok(_) => String::from("192.168.179.129:9000"),
             Err(_) => String::from("localhost:9000"),
         };
-        
+
         HdfsReaderConfig {
             filter_ext: None,
             expect_dir: true,
-            namenode: nn,//这里namenode的ip可能有误（不知道socketAddr转为string带不带端口号）
+            namenode: nn, //这里namenode的ip可能有误（不知道socketAddr转为string带不带端口号）
             dir_path: path.into(),
             executor_partitions: None,
         }
@@ -48,11 +49,12 @@ impl HdfsReaderConfig {
 
     /// Only will read files with a given extension.
     pub fn filter_extension<T: Into<String>>(&mut self, extension: T) {
-        self.filter_ext = Some(extension.into().into());//?
+        self.filter_ext = Some(extension.into().into()); //?
     }
 
     /// Set the namenode.
-    pub fn set_namenode<T: Into<String>>(&mut self, namenode: T) {//这里之后可能得做一下保护，只能设置一次namenode
+    pub fn set_namenode<T: Into<String>>(&mut self, namenode: T) {
+        //这里之后可能得做一下保护，只能设置一次namenode
         self.namenode = namenode.into();
     }
 
@@ -70,7 +72,7 @@ impl HdfsReaderConfig {
         self
     }
 }
-
+#[cfg(any(hdrs))]
 impl ReaderConfiguration<Vec<u8>> for HdfsReaderConfig {
     fn make_reader<F, U>(self, context: Arc<Context>, decoder: F) -> SerArc<dyn Rdd<Item = U>>
     where
@@ -92,7 +94,7 @@ impl ReaderConfiguration<Vec<u8>> for HdfsReaderConfig {
         SerArc::new(decoder)
     }
 }
-
+#[cfg(any(hdrs))]
 impl ReaderConfiguration<PathBuf> for HdfsReaderConfig {
     fn make_reader<F, U>(self, context: Arc<Context>, decoder: F) -> SerArc<dyn Rdd<Item = U>>
     where
@@ -118,6 +120,7 @@ impl ReaderConfiguration<PathBuf> for HdfsReaderConfig {
 /// Reads all files specified in a given directory from the local directory
 /// on all executors on every worker node.
 #[derive(Clone, Serialize, Deserialize)]
+#[cfg(any(hdrs))]
 pub struct HdfsReader<T> {
     id: usize,
     namenode: String,
@@ -133,7 +136,7 @@ pub struct HdfsReader<T> {
     splits: Vec<SocketAddrV4>,
     _marker_reader_data: PhantomData<T>,
 }
-
+#[cfg(any(hdrs))]
 impl<T: Data> HdfsReader<T> {
     fn new(config: HdfsReaderConfig, context: Arc<Context>) -> Self {
         let HdfsReaderConfig {
@@ -149,14 +152,10 @@ impl<T: Data> HdfsReader<T> {
             let path = path.to_str().unwrap();
             let client = Client::connect(namenode.as_str());
             match client {
-                Ok(client) => {
-                    match client.metadata(path){
-                        Ok(metadata) => {
-                            metadata.is_file()
-                        },
-                        Err(e) => {
-                            panic!("Failed to read metadata from HDFS: {}", e);
-                        }
+                Ok(client) => match client.metadata(path) {
+                    Ok(metadata) => metadata.is_file(),
+                    Err(e) => {
+                        panic!("Failed to read metadata from HDFS: {}", e);
                     }
                 },
                 Err(e) => {
@@ -184,7 +183,7 @@ impl<T: Data> HdfsReader<T> {
     fn load_hdfs_files(&self) -> Result<Vec<Vec<PathBuf>>> {
         let mut total_size = 0_u64;
         if self.is_single_file {
-            let files = vec![vec![self.path.clone()]];//按分区存，每个分区是一个vec，每个分区的vec里面是若干文件
+            let files = vec![vec![self.path.clone()]]; //按分区存，每个分区是一个vec，每个分区的vec里面是若干文件
             return Ok(files);
         }
 
@@ -194,19 +193,23 @@ impl<T: Data> HdfsReader<T> {
         // of size per partition.
         let mut total_files = 0_u64;
         let mut k = 0;
-        let mut ex = 0.0;//期望？
-        let mut ex2 = 0.0;//平方的期望？
+        let mut ex = 0.0; //期望？
+        let mut ex2 = 0.0; //平方的期望？
 
         let fs = Client::connect(self.namenode.as_str()).unwrap();
 
-        for (i, entry) in fs.read_dir(&self.path.to_str().unwrap()).unwrap().into_inner()//处理该路径下的每一个条目
+        for (i, entry) in fs
+            .read_dir(&self.path.to_str().unwrap())
+            .unwrap()
+            .into_inner() //处理该路径下的每一个条目
             .enumerate()
         {
             let path = PathBuf::from(entry.path());
             if entry.is_file() {
                 let is_proper_file = {
                     self.filter_ext.is_none()
-                        || path.extension() == self.filter_ext.as_ref().map(|s| s.as_ref())//根据filter对文件进行过滤
+                        || path.extension() == self.filter_ext.as_ref().map(|s| s.as_ref())
+                    //根据filter对文件进行过滤
                 };
                 if !is_proper_file {
                     continue;
@@ -232,7 +235,7 @@ impl<T: Data> HdfsReader<T> {
         }
 
         let file_size_mean = (total_size / total_files) as u64;
-        let std_dev = ((ex2 - ex.powf(2.0) / total_files as f32) / total_files as f32).sqrt();//这个标准差算得有点奇怪
+        let std_dev = ((ex2 - ex.powf(2.0) / total_files as f32) / total_files as f32).sqrt(); //这个标准差算得有点奇怪
 
         if total_files < num_partitions {
             // Coerce the number of partitions to the number of files
@@ -241,7 +244,8 @@ impl<T: Data> HdfsReader<T> {
 
         let avg_partition_size = (total_size / num_partitions) as u64;
 
-        let partitions = self.assign_files_to_partitions(//将文件分配到分区
+        let partitions = self.assign_files_to_partitions(
+            //将文件分配到分区
             num_partitions,
             files,
             file_size_mean,
@@ -258,9 +262,9 @@ impl<T: Data> HdfsReader<T> {
         &self,
         num_partitions: u64,
         files: Vec<(u64, PathBuf)>,
-        file_size_mean: u64,//平均大小
+        file_size_mean: u64, //平均大小
         avg_partition_size: u64,
-        std_dev: f32,//文件大小的标准差
+        std_dev: f32, //文件大小的标准差
     ) -> Vec<Vec<PathBuf>> {
         // Accept ~ 0.25 std deviations top from the average partition size
         // when assigning a file to a partition.
@@ -276,18 +280,19 @@ impl<T: Data> HdfsReader<T> {
         );
 
         let mut partitions = Vec::with_capacity(num_partitions as usize);
-        let mut partition = Vec::with_capacity(0);//这样分配？
+        let mut partition = Vec::with_capacity(0); //这样分配？
         let mut curr_part_size = 0_u64;
-        let mut rng = rand::thread_rng();//RNG牛B
+        let mut rng = rand::thread_rng(); //RNG牛B
 
         for (size, file) in files.into_iter() {
-            if partitions.len() as u64 == num_partitions - 1 {//最后一个分区，所有剩余文件都放里面
+            if partitions.len() as u64 == num_partitions - 1 {
+                //最后一个分区，所有剩余文件都放里面
                 partition.push(file);
                 continue;
             }
 
             let new_part_size = curr_part_size + size;
-            let larger_than_mean = rng.gen::<bool>();//随机生成？？
+            let larger_than_mean = rng.gen::<bool>(); //随机生成？？
             if (larger_than_mean && new_part_size < high_part_size_bound)
                 || (!larger_than_mean && new_part_size <= avg_partition_size)
             {
@@ -319,7 +324,7 @@ impl<T: Data> HdfsReader<T> {
             // partitions than specified. This the number of partitions is actually the specified.
             if partitions.get(current_pos).unwrap().len() > 1 {
                 // Only get elements from part as long as it has more than one element
-                let last_part = partitions.get_mut(current_pos).unwrap().pop().unwrap();//从当前位置的分区中取出一个文件，放到新的分区中
+                let last_part = partitions.get_mut(current_pos).unwrap().pop().unwrap(); //从当前位置的分区中取出一个文件，放到新的分区中
                 partitions.push(vec![last_part])
             } else if current_pos > 0 {
                 current_pos -= 1;
@@ -338,7 +343,7 @@ impl<T: Data> HdfsReader<T> {
         }
     }
 }
-
+#[cfg(any(hdrs))]
 macro_rules! impl_common_lfs_rddb_funcs {
     () => {
         fn get_rdd_id(&self) -> usize {
@@ -349,7 +354,8 @@ macro_rules! impl_common_lfs_rddb_funcs {
             self.context.clone()
         }
 
-        fn get_dependencies(&self) -> Vec<Dependency> {//？
+        fn get_dependencies(&self) -> Vec<Dependency> {
+            //？
             vec![]
         }
 
@@ -368,7 +374,7 @@ macro_rules! impl_common_lfs_rddb_funcs {
         }
     };
 }
-
+#[cfg(any(hdrs))]
 impl RddBase for HdfsReader<BytesReader> {
     impl_common_lfs_rddb_funcs!();
 
@@ -392,7 +398,7 @@ impl RddBase for HdfsReader<BytesReader> {
         splits
     }
 }
-
+#[cfg(any(hdrs))]
 impl RddBase for HdfsReader<FileReader> {
     impl_common_lfs_rddb_funcs!();
 
@@ -413,7 +419,7 @@ impl RddBase for HdfsReader<FileReader> {
         splits
     }
 }
-
+#[cfg(any(hdrs))]
 macro_rules! impl_common_lfs_rdd_funcs {
     () => {
         fn get_rdd(&self) -> Arc<dyn Rdd<Item = Self::Item>>
@@ -428,7 +434,7 @@ macro_rules! impl_common_lfs_rdd_funcs {
         }
     };
 }
-
+#[cfg(any(hdrs))]
 impl Rdd for HdfsReader<BytesReader> {
     type Item = BytesReader;
 
@@ -440,14 +446,17 @@ impl Rdd for HdfsReader<BytesReader> {
         let idx = split.idx;
         let host = split.host;
         let namenode = self.namenode.clone();
-        Ok(Box::new(
-            files_by_part
-                .into_iter()
-                .map(move |files| BytesReader { files, host, idx, namenode: namenode.clone() }),
-        ) as Box<dyn Iterator<Item = Self::Item>>)
+        Ok(
+            Box::new(files_by_part.into_iter().map(move |files| BytesReader {
+                files,
+                host,
+                idx,
+                namenode: namenode.clone(),
+            })) as Box<dyn Iterator<Item = Self::Item>>,
+        )
     }
 }
-
+#[cfg(any(hdrs))]
 impl Rdd for HdfsReader<FileReader> {
     type Item = FileReader;
 
@@ -465,7 +474,7 @@ impl Rdd for HdfsReader<FileReader> {
         ) as Box<dyn Iterator<Item = Self::Item>>)
     }
 }
-
+#[cfg(any(hdrs))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BytesReader {
     files: Vec<PathBuf>,
@@ -473,19 +482,23 @@ pub struct BytesReader {
     host: Ipv4Addr,
     namenode: String,
 }
-
+#[cfg(any(hdrs))]
 impl Split for BytesReader {
     fn get_index(&self) -> usize {
         self.idx
     }
 }
-
+#[cfg(any(hdrs))]
 impl Iterator for BytesReader {
     type Item = Vec<u8>;
     fn next(&mut self) -> Option<Self::Item> {
         let fs = Client::connect(self.namenode.as_str()).unwrap();
         if let Some(path) = self.files.pop() {
-            let file = fs.open_file().read(true).open(path.to_str().unwrap()).unwrap();
+            let file = fs
+                .open_file()
+                .read(true)
+                .open(path.to_str().unwrap())
+                .unwrap();
             let mut content = vec![];
             let mut reader = BufReader::new(file);
             reader.read_to_end(&mut content).unwrap();
@@ -495,20 +508,20 @@ impl Iterator for BytesReader {
         }
     }
 }
-
+#[cfg(any(hdrs))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FileReader {
     files: Vec<PathBuf>,
     idx: usize,
     host: Ipv4Addr,
 }
-
+#[cfg(any(hdrs))]
 impl Split for FileReader {
     fn get_index(&self) -> usize {
         self.idx
     }
 }
-
+#[cfg(any(hdrs))]
 impl Iterator for FileReader {
     type Item = PathBuf;
     fn next(&mut self) -> Option<Self::Item> {

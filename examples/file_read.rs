@@ -1,9 +1,10 @@
-use chrono::prelude::*;
+use std::time::Instant;
 use vega::io::*;
 use vega::*;
 use std::{env, fs, os::unix::prelude::FileExt, io::Write};
 
 fn main() -> Result<()> {
+    let start = Instant::now();
     let mut file = std::fs::File::create("/tmp/env.txt").expect("create failed");
     for (key, value) in env::vars() {
         let msg = format!("{}: {}", key, value);
@@ -25,7 +26,7 @@ fn main() -> Result<()> {
             let line = line.split(',').collect::<Vec<_>>();
             (
                 (line[5].to_string()),
-                (line[11].parse::<i64>().unwrap(), 1.0),
+                (line[11].parse::<f64>().unwrap(), 1.0),
             )
         })) as Box<dyn Iterator<Item = _>>
     }));
@@ -33,6 +34,8 @@ fn main() -> Result<()> {
     //let sum = line.reduce_by_key(Fn!(|((vl, cl), (vr, cr))| (vl + vr, cl + cr)), 1);
     //let avg = sum.map(Fn!(|(k, (v, c))| (k, v as f64 / c)));
     //let res = avg.collect().unwrap();
-    println!("result: {:?}",    line.collect().unwrap());
+    println!("result: {:?}", line.collect().unwrap());
+    let duration = start.elapsed();
+    println!("Time elapsed is: {:?}", duration);
     Ok(())
 }

@@ -32,8 +32,9 @@ pub(crate) struct ShuffleManager {
 
 impl ShuffleManager {
     pub fn new() -> Result<Self> {
+        //包含以下工作：新建shuffle文件夹，获取服务器网络参数，以此新建ShuffleManager
         let shuffle_dir = ShuffleManager::get_shuffle_data_dir()?; //example: ns-shuffle-01907472-0411-4f48-9096-a1692772151b
-        fs::create_dir_all(&shuffle_dir).map_err(|_| ShuffleError::CouldNotCreateShuffleDir)?;
+        fs::create_dir_all(&shuffle_dir).map_err(|_| ShuffleError::CouldNotCreateShuffleDir)?; //新建shuffle文件夹，mkdir
         let shuffle_port = env::Configuration::get().shuffle_svc_port;
         let (server_uri, server_port) = ShuffleManager::start_server(shuffle_port)?;
         let (send_main, rcv_main) = ShuffleManager::init_status_checker(&server_uri)?;
@@ -65,7 +66,7 @@ impl ShuffleManager {
         input_id: usize,
         output_id: usize,
     ) -> StdResult<String, Box<dyn std::error::Error>> {
-        //函数功能：创建output文件并返回其路径
+        //函数功能：创建output文件并返回其路径`shuffle_dir/shuffle_id/input_id/output_id`
         let path = self
             .shuffle_dir
             .join(format!("{}/{}", shuffle_id, input_id));
@@ -151,7 +152,7 @@ impl ShuffleManager {
     }
 
     fn get_shuffle_data_dir() -> Result<PathBuf> {
-        //函数功能：尝试至多十遍来建立shuffle文件，成功则返回创建文件的路径，若10次都重名则报错
+        //函数功能：尝试至多十遍来随机生成shuffle路径，成功则返回创建文件夹的路径，若10次都重名则报错（概率极低）
         let local_dir_root = &env::Configuration::get().local_dir; // 好像是/tmp/
         for _ in 0..10 {
             let local_dir =
@@ -183,7 +184,7 @@ impl ShuffleService {
             [_, endpoint] if *endpoint == "status" => Ok(ShuffleResponse::Status(StatusCode::OK)),
             [_, endpoint, shuffle_id, input_id, reduce_id] if *endpoint == "shuffle" => Ok(
                 ShuffleResponse::CachedData(
-                    self.get_cached_data(uri, &[*shuffle_id, *input_id, *reduce_id])?,
+                    self.get_cached_data(uri, &[*shuffle_id, *input_id, *reduce_id])?,//关键操作
                 ),
             ),
             _ => Err(ShuffleError::UnexpectedUri(uri.path().to_string())),

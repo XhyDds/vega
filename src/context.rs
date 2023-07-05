@@ -276,7 +276,7 @@ impl Context {
         let job_work_dir_str = job_work_dir
             .to_str()
             .ok_or_else(|| Error::PathToString(job_work_dir.clone()))?;
-
+        println!("{}", job_work_dir_str);
         let binary_path = std::env::current_exe().map_err(|_| Error::CurrentBinaryPath)?;
         let binary_path_str = binary_path
             .to_str()
@@ -308,7 +308,21 @@ impl Context {
             address_map.push(SocketAddrV4::new(address_ip, port));
             println!("{}", key_path);
             // Create work dir:
+
+            //test
+            let job_work_dir_str = &job_work_dir_str.replace(
+                env::Configuration::get()
+                    .local_dir
+                    .to_str()
+                    .ok_or_else(|| Error::PathToString(job_work_dir.clone()))?,
+                &format!(
+                    "{}{}",
+                    "/home/",
+                    slave.ip.as_str().split('@').nth(0).unwrap()
+                ),
+            );
             println!("{}", job_work_dir_str);
+
             Command::new("ssh")
                 .args(&["-i", key_path, address, "mkdir", &job_work_dir_str])
                 .output()
