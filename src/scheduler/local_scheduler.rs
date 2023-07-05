@@ -187,7 +187,7 @@ impl LocalScheduler {
         // construction of dag task graph. dag task graph construction needs to be altered
         let selfc = self.clone();
         let _lock = selfc.scheduler_lock.lock();
-        // println!("get lock for scheduler");
+        log::debug!("get lock for scheduler");
         //异步执行
         env::Env::run_in_async_rt(|| -> Result<Vec<U>> {
             //传入的闭包非异步，用block_on包装

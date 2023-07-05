@@ -1,4 +1,4 @@
-use std::time::{Instant};
+use std::time::Instant;
 
 // use vega::*;
 
@@ -22,7 +22,7 @@ fn main() -> Result<()> {
 
     let start = Instant::now();
 
-    let sz=1000000;
+    let sz = 1000000;
     let col = sc.make_rdd((0..sz).collect::<Vec<_>>(), 2);
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
     // let y: f64 = rng.gen();
@@ -39,11 +39,11 @@ fn main() -> Result<()> {
             0
         }
     }));
-    let res = coordinate_iter.fold(0, Fn!(|acc,i|acc+i)).unwrap();
-    println!("result: {:?}", 1.0*res as f64*4.0/sz as f64);
+    let res = coordinate_iter.fold(0, Fn!(|acc, i| acc + i)).unwrap();
+    println!("result: {:?}", 1.0 * res as f64 * 4.0 / sz as f64);
 
     let end = start.elapsed();
-    println!("程序运行时间:{:?}",end);
+    println!("程序运行时间:{:?}", end);
     Ok(())
 }
 
