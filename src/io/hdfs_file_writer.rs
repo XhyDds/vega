@@ -7,13 +7,13 @@ use crate::*;
 use crate::rdd::MapperRdd;
 use std::io::{self, Read};
 
-struct HdfsIO {
+pub struct HdfsIO {
     nn: String,
     fs: Client,
 }
 
 impl HdfsIO {
-    fn new(nn: String) -> Result<Self> {
+    pub fn new(nn: String) -> Result<Self> {
         let nn = nn + ":9000";
         let fs = Client::connect(nn.as_str());
         let fs = match fs {
@@ -30,7 +30,7 @@ impl HdfsIO {
         })
     }
 
-    fn read_to_vec(&mut self, path: &str) -> Result<Vec<u8>> {
+    pub fn read_to_vec(&mut self, path: &str) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         let mut oo = self.fs.open_file();
         let file = oo.read(true).open(path);
@@ -52,7 +52,7 @@ impl HdfsIO {
         Ok(buf)
     }
 
-    fn read_to_rdd<U, F>(&mut self, path: &str, context: &Arc<Context>, num_slices: usize, f: F) -> Result<SerArc<dyn Rdd<Item = U>>> 
+    pub fn read_to_rdd<U, F>(&mut self, path: &str, context: &Arc<Context>, num_slices: usize, f: F) -> Result<SerArc<dyn Rdd<Item = U>>> 
     where
         F: SerFunc(Vec<u8>) -> Vec<U>,
         U: Data,
@@ -80,7 +80,7 @@ impl HdfsIO {
         Ok(rdd)
     }
 
-    fn read_dir_to_vec(&mut self, path: &str) -> Result<Vec<Vec<u8>>> {
+    pub fn read_dir_to_vec(&mut self, path: &str) -> Result<Vec<Vec<u8>>> {
         let mut vec = Vec::<Vec<u8>>::new();
         let dir = self.fs.read_dir(path);
         let dir = match dir {
@@ -116,7 +116,7 @@ impl HdfsIO {
         Ok(vec)
     }
 
-    fn read_dir_to_rdd<U, F>(&mut self, path: &str, context: &Arc<Context>, num_slices: usize, f: F) -> Result<SerArc<dyn Rdd<Item = Vec<U>>>>
+    pub fn read_dir_to_rdd<U, F>(&mut self, path: &str, context: &Arc<Context>, num_slices: usize, f: F) -> Result<SerArc<dyn Rdd<Item = Vec<U>>>>
     where
         F: SerFunc(Vec<u8>) -> Vec<U>,
         U: Data,
@@ -160,20 +160,4 @@ impl HdfsIO {
         Ok(SerArc::new(rdd))
     }
 
-}
-
-fn write_to_hdfs(nn: String, path: String, data: Vec<u8>) -> Result<()> {
-    let nn = nn + ":9000";
-    let fs = Client::connect(nn.as_str());
-    let fs = match fs {
-        Ok(fs) => {
-            fs
-        }
-        Err(e) => {
-            return Err(Error::HdfsConnect(nn));
-        }
-    };
-    let oo = fs.open_file();
-
-    Ok(())
 }

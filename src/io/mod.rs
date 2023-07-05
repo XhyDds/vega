@@ -11,6 +11,7 @@ mod hdfs_file_writer;
 //#[cfg(any(hdrs))]
 pub use hdfs_file_reader::{HdfsReader, HdfsReaderConfig};
 pub use local_file_reader::{LocalFsReader, LocalFsReaderConfig};
+pub use hdfs_file_writer::HdfsIO;
 
 pub trait ReaderConfiguration<I: Data> {
     fn make_reader<F, O>(self, context: Arc<Context>, decoder: F) -> SerArc<dyn Rdd<Item = O>>
