@@ -7,6 +7,7 @@ use vega::*;
 /// num_slices(Option<usize>)是rdd分区数量
 /// 这里使用Context的引用传参，如果直接传入会大大损失性能
 /// 2.971s->1.130s
+#[allow(dead_code)]
 pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>) {
     let start = Instant::now();
     let param = param.unwrap_or(1000000);
