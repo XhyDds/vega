@@ -204,12 +204,9 @@ impl ShuffleService {
             }
             Ok(parts) => parts,
         };
-        let params = if (env::Configuration::get().is_sort_shuffle) {
-            &(parts[0], parts[2])
-        } else {
-            &(parts[0], parts[2])
-            //&(parts[0], parts[1], parts[2])
-        };
+        let params = &(parts[0], parts[2]);
+        //&(parts[0], parts[1], parts[2])
+
         if let Some(cached_data) = env::SHUFFLE_CACHE.get(params) {
             log::debug!(
                 "got a request @ `{}`, params: {:?}, returning data",
