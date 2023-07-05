@@ -247,7 +247,7 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
                 partition,
                 set.get(0)
             );
-            if (env::Configuration::get().is_sort_shuffle) {
+            if env::Configuration::get().is_sort_shuffle {
                 if let Some(mut old_v) = env::SHUFFLE_CACHE.get_mut(&(self.shuffle_id, i)) {
                     let mut new_v = old_v.clone();
                     new_v.push(ser_bytes);
