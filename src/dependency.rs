@@ -98,20 +98,18 @@ pub trait ShuffleDependencyTrait: Serialize + Deserialize + Send + Sync {
     fn do_shuffle_task(&self, rdd_base: Arc<dyn RddBase>, partition: usize) -> String;
 }
 
+//比较shuffle_id大小
 impl PartialOrd for dyn ShuffleDependencyTrait {
     fn partial_cmp(&self, other: &dyn ShuffleDependencyTrait) -> Option<Ordering> {
         Some(self.get_shuffle_id().cmp(&other.get_shuffle_id()))
     }
 }
-
 impl PartialEq for dyn ShuffleDependencyTrait {
     fn eq(&self, other: &dyn ShuffleDependencyTrait) -> bool {
         self.get_shuffle_id() == other.get_shuffle_id()
     }
 }
-
 impl Eq for dyn ShuffleDependencyTrait {}
-
 impl Ord for dyn ShuffleDependencyTrait {
     fn cmp(&self, other: &dyn ShuffleDependencyTrait) -> Ordering {
         self.get_shuffle_id().cmp(&other.get_shuffle_id())
@@ -193,27 +191,30 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
             self.shuffle_id,
             partition
         );
-        let split = rdd_base.splits()[partition].clone();
+        let split = rdd_base.splits()[partition].clone(); //获取指定分区的split（reduce_id）
         let aggregator = self.aggregator.clone();
-        let num_output_splits = self.partitioner.get_num_of_partitions();
+        let num_output_splits = self.partitioner.get_num_of_partitions(); //以下注释里面称为n
         log::debug!("is cogroup rdd: {}", self.is_cogroup);
         log::debug!("number of output splits: {}", num_output_splits);
         let partitioner = self.partitioner.clone();
         let mut buckets: Vec<HashMap<K, C>> = (0..num_output_splits)
             .map(|_| HashMap::new())
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>(); //[n个空HashMap]的数组
         log::debug!(
             "before iterating while executing shuffle map task for partition #{}",
             partition
         );
         log::debug!("split index: {}", split.get_index());
 
+        //到这一步，我们有了分区号partition，分区数n=num_output_splits，reduce_id(split)，空桶buckets
         let iter = if self.is_cogroup {
             rdd_base.cogroup_iterator_any(split)
         } else {
             rdd_base.iterator_any(split.clone())
+            //若在shuffle_rdd里，split就是reduce_id，这句会得到对应的shuffle文件读出的（K,V）对
         };
 
+        //下面的代码，是把iter里面的所有(K,V)对，按照K的hash值，将V分配到n个HashMap里面，最后插进内存(self.shuffle_id, partition, i)处(i是桶编号)
         for (count, i) in iter.unwrap().enumerate() {
             let b = i.into_any().downcast::<(K, V)>().unwrap();
             let (k, v) = *b;
@@ -224,7 +225,7 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
                     v
                 );
             }
-            let bucket_id = partitioner.get_partition(&k);
+            let bucket_id = partitioner.get_partition(&k); //这里key被hash了一遍
             let bucket = &mut buckets[bucket_id];
             if let Some(old_v) = bucket.get_mut(&k) {
                 let input = ((old_v.clone(), v),);
@@ -232,8 +233,9 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
                 *old_v = output;
             } else {
                 bucket.insert(k, aggregator.create_combiner.call((v,)));
-            }
+            } //把所有v的内容hash到各个桶里
         }
+        //这时得到的映射为：i->Vec<(K, V)>的HashMap，i为桶的编号
 
         for (i, bucket) in buckets.into_iter().enumerate() {
             let set: Vec<(K, C)> = bucket.into_iter().collect();
