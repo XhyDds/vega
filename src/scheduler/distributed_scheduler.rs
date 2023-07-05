@@ -496,6 +496,7 @@ impl NativeScheduler for DistributedScheduler {
                         });
 
                         log::debug!("sent data to exec @{}", target_executor.port());
+                        println!("sent task {} to exec @{} ({})", task.get_task_id(),target_executor.port(),target_executor.to_string());
 
                         // receive results back
                         // 接收到result

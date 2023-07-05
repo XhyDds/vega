@@ -198,16 +198,18 @@ pub(crate) trait NativeScheduler: Send + Sync {
         let FetchFailedVals {
             server_uri, map_id, ..
         } = failed_vals;
-        let shuffle = self
-            .fetch_from_stage_cache(stage_id)
+        // TODO: mapoutput tracker needs to be finished for this
+        // let failed_stage = self.id_to_stage.lock().get(&stage_id).?.clone();
+        let failed_stage = self.fetch_from_stage_cache(stage_id);
+
+        println!("failed stage: {:?}", failed_stage.num_partitions);
+        let shuffle = failed_stage
             .shuffle_dependency
             .clone()
             .ok_or_else(|| Error::Other)
             .expect("shuffle dependency not found");
         let shuffle_id = shuffle.get_shuffle_id();
-        // TODO: mapoutput tracker needs to be finished for this
-        // let failed_stage = self.id_to_stage.lock().get(&stage_id).?.clone();
-        let failed_stage = self.fetch_from_stage_cache(stage_id);
+
         // 从running中移除失败的stage，并加入到failed中
         jt.running.lock().await.remove(&failed_stage);
         jt.failed.lock().await.insert(failed_stage);
