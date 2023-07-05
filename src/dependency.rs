@@ -247,7 +247,17 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
                 partition,
                 set.get(0)
             );
-            env::SHUFFLE_CACHE.insert((self.shuffle_id, partition, i), ser_bytes);
+            if (env::Configuration::get().is_sort_shuffle) {
+                if let Some(mut old_v) = env::SHUFFLE_CACHE.get_mut(&(self.shuffle_id, i)) {
+                    let mut new_v = old_v.clone();
+                    new_v.push(ser_bytes);
+                    *old_v = new_v;
+                } else {
+                    env::SHUFFLE_CACHE.insert((self.shuffle_id, i), vec![ser_bytes]);
+                }
+            } else {
+                //env::SHUFFLE_CACHE.insert((self.shuffle_id, partition, i), ser_bytes);
+            }
         }
         log::debug!(
             "returning shuffle address for shuffle task #{}",
