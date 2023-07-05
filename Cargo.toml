@@ -9,7 +9,8 @@ build = "build.rs"
 name = "vega"
 
 [features]
-# hdrs_valid=["hdrs"]
+default=["hdrs_valid"]
+hdrs_valid=[]
 # aws_connectors = ["rusoto_core", "rusoto_s3"]
 
 [dependencies]
