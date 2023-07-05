@@ -5,6 +5,8 @@ use crate::rdd::Rdd;
 use crate::serializable_traits::{Data, SerFunc};
 use crate::SerArc;
 
+#[cfg(any(hdrs))]
+mod hdfs_file_reader;
 mod local_file_reader;
 mod hdfs_file_reader;
 mod hdfs_file_writer;

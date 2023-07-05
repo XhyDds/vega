@@ -88,7 +88,8 @@ impl ShuffleFetcher {
                     let mut chunk_uri_str = String::with_capacity(server_uri.len() + 12);
                     chunk_uri_str.push_str(&server_uri); //String类型的server_uri
                     let mut shuffle_chunks = Vec::with_capacity(input_ids.len());
-                    for input_id in input_ids {
+                    for input_id in &input_ids[0..1] {
+                        //changed for sort_shuffle
                         //URI对应的index1,index2,...，即分区号
                         if failure.load(atomic::Ordering::Acquire) {
                             // Abort early since the work failed in an other future
@@ -98,17 +99,21 @@ impl ShuffleFetcher {
                         let chunk_uri = ShuffleFetcher::make_chunk_uri(
                             &server_uri,
                             &mut chunk_uri_str,
-                            input_id,
+                            *input_id, //changed for sort_shuffle
                             reduce_id,
                         )?; //这个文件是以input_id和reduce_id命名的！1个shuffle task会产生分区数*reduce任务数个文件
                         let data_bytes = {
-                            let res = client.get(chunk_uri).await?;
+                            let res = client.get(chunk_uri).await?; //这里get会把shuffle文件给读出来
                             hyper::body::to_bytes(res.into_body()).await
                         }; //通过http连接从服务器获取数据
                            //如果获取数据成功，则将其解析为(K, V)元组，并将它们添加到shuffle_chunks向量中。
                         if let Ok(bytes) = data_bytes {
-                            let deser_data = bincode::deserialize::<Vec<(K, V)>>(&bytes.to_vec())?;
-                            shuffle_chunks.push(deser_data); //向shuffle_chunks装入deser_data
+                            let deser_vec_data =
+                                bincode::deserialize::<Vec<Vec<u8>>>(&bytes.to_vec())?;
+                            for data in deser_vec_data {
+                                let deser_data = bincode::deserialize::<Vec<(K, V)>>(&data)?;
+                                shuffle_chunks.push(deser_data); //向shuffle_chunks装入deser_data
+                            }
                         } else {
                             failure.store(true, atomic::Ordering::Release);
                             return Err(ShuffleError::FailedFetchOp);
@@ -189,7 +194,8 @@ mod tests {
 
             let data = vec![(0i32, "example data".to_string())];
             let serialized_data = bincode::serialize(&data).unwrap();
-            env::SHUFFLE_CACHE.insert((11000, 0, 11001), serialized_data);
+            //env::SHUFFLE_CACHE.insert((11000, 0, 11001), serialized_data);
+            env::SHUFFLE_CACHE.insert((11000, 11001), vec![serialized_data]);
         }
 
         let result: Vec<(i32, String)> = ShuffleFetcher::fetch(11000, 11001)
@@ -214,7 +220,8 @@ mod tests {
 
             let data = "corrupted data";
             let serialized_data = bincode::serialize(&data).unwrap();
-            env::SHUFFLE_CACHE.insert((10000, 0, 10001), serialized_data);
+            //env::SHUFFLE_CACHE.insert((10000, 0, 10001), serialized_data);
+            env::SHUFFLE_CACHE.insert((10000, 10001), vec![serialized_data]);
         }
 
         let err = ShuffleFetcher::fetch::<i32, String>(10000, 10001).await;

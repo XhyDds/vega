@@ -5,7 +5,7 @@ services:
     image: prom/prometheus
     container_name: prometheus
     restart: always
-    prots:
+    ports:
       - '9090:9090'
     volumes:
       - ./monitoring/prometheus:/etc/prometheus
@@ -14,19 +14,22 @@ services:
       - '--web.external-url=http://localhost:9090'
 
   grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
+    image: grafana/grafana-enterprise:latest
     restart: always
+    user: root
     ports:
       - '3000:3000'
     volumes:
       - ./monitoring/grafana/data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
 
-  vega_master:
-    build:
-      context: ..
-      dockerfile: ./docker/Dockerfile
+  node_exporter:
+    image: prom/node-exporter
+    restart: always
+    ports:
+      - '9100:9100'
+      
+  # vega_master:
+  #   build:
+  #     context: ..
+  #     dockerfile: ./docker/Dockerfile

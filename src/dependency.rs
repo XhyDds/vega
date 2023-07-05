@@ -235,7 +235,7 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
                 bucket.insert(k, aggregator.create_combiner.call((v,)));
             } //把所有v的内容hash到各个桶里
         }
-        //这时得到的映射为：i->Vec<(K, V)>的HashMap，i为桶的编号
+        //这时得到的映射为：i->Vec<(K, V)>的HashMap，i为桶的编号，hash(K)=i
 
         for (i, bucket) in buckets.into_iter().enumerate() {
             let set: Vec<(K, C)> = bucket.into_iter().collect();
@@ -247,7 +247,17 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
                 partition,
                 set.get(0)
             );
-            env::SHUFFLE_CACHE.insert((self.shuffle_id, partition, i), ser_bytes);
+            if (env::Configuration::get().is_sort_shuffle) {
+                if let Some(mut old_v) = env::SHUFFLE_CACHE.get_mut(&(self.shuffle_id, i)) {
+                    let mut new_v = old_v.clone();
+                    new_v.push(ser_bytes);
+                    *old_v = new_v;
+                } else {
+                    env::SHUFFLE_CACHE.insert((self.shuffle_id, i), vec![ser_bytes]);
+                }
+            } else {
+                //env::SHUFFLE_CACHE.insert((self.shuffle_id, partition, i), ser_bytes);
+            }
         }
         log::debug!(
             "returning shuffle address for shuffle task #{}",

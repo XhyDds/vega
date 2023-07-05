@@ -68,7 +68,7 @@ pub struct CoGroupedRdd<K: Data> {
     pub(crate) rdds: Vec<SerArc<dyn RddBase>>,
     #[serde(with = "serde_traitobject")]
     pub(crate) part: Box<dyn Partitioner>,
-    _marker: PhantomData<K>,//PhandomData没有实际内容，仅起标志作用
+    _marker: PhantomData<K>, //PhandomData没有实际内容，仅起标志作用
 }
 
 impl<K: Data + Eq + Hash> CoGroupedRdd<K> {
@@ -149,13 +149,14 @@ impl<K: Data + Eq + Hash> RddBase for CoGroupedRdd<K> {
     }
 
     fn splits(&self) -> Vec<Box<dyn Split>> {
+        //获得每个分区的依赖
         let mut splits = Vec::new();
         for i in 0..self.part.get_num_of_partitions() {
             splits.push(Box::new(CoGroupSplit::new(
                 i,
                 self.rdds
                     .iter()
-                    .enumerate()
+                    .enumerate() //(i,rdd)迭代器
                     .map(|(i, r)| match &self.get_dependencies()[i] {
                         Dependency::ShuffleDependency(s) => {
                             CoGroupSplitDep::ShuffleCoGroupSplitDep {
@@ -222,7 +223,7 @@ impl<K: Data + Eq + Hash> Rdd for CoGroupedRdd<K> {
                             let (k, v) = *b;
                             let k = *(k.into_any().downcast::<K>().unwrap());
                             agg.entry(k)
-                                .or_insert_with(|| vec![Vec::new(); self.rdds.len()])[dep_num]
+                                .or_insert_with(|| vec![Vec::new(); self.rdds.len()])[dep_num]//vec![Vec::new(); self.rdds.len()]: [rdd.len()个空vec]
                                 .push(v)
                         }
                     }

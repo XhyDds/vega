@@ -182,11 +182,11 @@ impl ShuffleService {
         let parts: Vec<_> = uri.path().split('/').collect();
         match parts.as_slice() {
             [_, endpoint] if *endpoint == "status" => Ok(ShuffleResponse::Status(StatusCode::OK)),
-            [_, endpoint, shuffle_id, input_id, reduce_id] if *endpoint == "shuffle" => Ok(
-                ShuffleResponse::CachedData(
-                    self.get_cached_data(uri, &[*shuffle_id, *input_id, *reduce_id])?,//关键操作
-                ),
-            ),
+            [_, endpoint, shuffle_id, input_id, reduce_id] if *endpoint == "shuffle" => {
+                Ok(ShuffleResponse::CachedData(
+                    self.get_cached_data(uri, &[*shuffle_id, *input_id, *reduce_id])?, //关键操作
+                ))
+            }
             _ => Err(ShuffleError::UnexpectedUri(uri.path().to_string())),
         }
     }
@@ -204,14 +204,16 @@ impl ShuffleService {
             }
             Ok(parts) => parts,
         };
-        let params = &(parts[0], parts[1], parts[2]);
+        let params = &(parts[0], parts[2]);
+        //&(parts[0], parts[1], parts[2])
+
         if let Some(cached_data) = env::SHUFFLE_CACHE.get(params) {
             log::debug!(
                 "got a request @ `{}`, params: {:?}, returning data",
                 uri,
                 params
             );
-            Ok(Vec::from(&cached_data[..]))
+            Ok(bincode::serialize(&Vec::from(&cached_data[..])).unwrap()) //Vec::from(&cached_data[..])
         } else {
             Err(ShuffleError::RequestedCacheNotFound)
         }
@@ -224,6 +226,7 @@ impl ShuffleService {
 }
 
 impl Service<Request<Body>> for ShuffleService {
+    //实现这个trait，把读地址当成HTTP读请求处理
     type Response = Response<Body>;
     type Error = ShuffleError;
     type Future = future::Ready<StdResult<Self::Response, Self::Error>>;
@@ -234,6 +237,7 @@ impl Service<Request<Body>> for ShuffleService {
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         match self.response_type(req.uri()) {
+            //self.response_type(req.uri()：关键步
             Ok(response) => match response {
                 ShuffleResponse::Status(code) => {
                     let body = Body::from(&[] as &[u8]);
@@ -338,7 +342,8 @@ mod tests {
         let (_, port) = ShuffleManager::start_server(None)?;
         let data = b"some random bytes".iter().copied().collect::<Vec<u8>>();
         {
-            env::SHUFFLE_CACHE.insert((2, 1, 0), data.clone());
+            //env::SHUFFLE_CACHE.insert((2, 1, 0), data.clone());
+            env::SHUFFLE_CACHE.insert((2, 0), vec![data.clone()]);
         }
         let url = format!(
             "http://{}:{}/shuffle/2/1/0",
