@@ -272,7 +272,7 @@ impl DistributedScheduler {
                             .await?;
                     }
                     FetchFailed(failed_vals) => {
-                        log::error!("{}:fetch failed", evt.task.get_stage_id()); //FIXME
+                        log::error!("{}:fetch failed", evt.task.get_task_id()); //FIXME
                         self.on_event_failure(jt.clone(), failed_vals, evt.task.get_stage_id())
                             .await;
                         fetch_failure_duration = start.elapsed();
@@ -378,7 +378,7 @@ impl DistributedScheduler {
     {
         let reason = TastEndReason::FetchFailed(FetchFailedVals {
             server_uri: target_executor.to_string(),
-            shuffle_id: 0,
+            shuffle_id: task.get_run_id(),
             map_id: map_id,
             reduce_id: 0, //用不到
         });
@@ -496,7 +496,12 @@ impl NativeScheduler for DistributedScheduler {
                         });
 
                         log::debug!("sent data to exec @{}", target_executor.port());
-                        println!("sent task {} to exec @{} ({})", task.get_task_id(),target_executor.port(),target_executor.to_string());
+                        println!(
+                            "sent task {} to exec @{} ({})",
+                            task.get_task_id(),
+                            target_executor.port(),
+                            target_executor.to_string()
+                        );
 
                         // receive results back
                         // 接收到result
