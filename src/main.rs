@@ -18,12 +18,13 @@ use vega::*;
    蒙特卡洛算法计算pi
 */
 fn main() -> Result<()> {
+    let pstart=Instant::now();
     let sc = Context::new()?;
 
     let start = Instant::now();
 
-    let sz = 1000000;
-    let col = sc.make_rdd((0..sz).collect::<Vec<_>>(), 2);
+    let sz=1000000;
+    let col = sc.make_rdd(0..sz, 2);
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
     // let y: f64 = rng.gen();
     let coordinate_iter = col.map(Fn!(|_| {
@@ -43,7 +44,9 @@ fn main() -> Result<()> {
     println!("result: {:?}", 1.0 * res as f64 * 4.0 / sz as f64);
 
     let end = start.elapsed();
-    println!("程序运行时间:{:?}", end);
+    println!("运算时间:{:?}",end);
+    let pend=pstart.elapsed();
+    println!("程序运行总时间:{:?}",pend);
     Ok(())
 }
 

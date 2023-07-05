@@ -14,7 +14,7 @@ pub struct Aggregator<K: Data, V: Data, C: Data> {
     #[serde(with = "serde_traitobject")]
     pub merge_value: Box<dyn serde_traitobject::Fn((C, V)) -> C + Send + Sync>,
     #[serde(with = "serde_traitobject")]
-    ///用Box包装的函数，传入两个Data类型的数据，返回一个Data类型的数据
+    ///拼接两Vec的函数，用Box包装输入，传入两个Data类型的数据，返回一个Data类型的数据
     pub merge_combiners: Box<dyn serde_traitobject::Fn((C, C)) -> C + Send + Sync>,
     _marker: PhantomData<K>,
 }
