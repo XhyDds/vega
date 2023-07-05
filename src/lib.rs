@@ -32,7 +32,7 @@ pub mod partitioner;
 #[path = "rdd/rdd.rs"]
 pub mod rdd;
 mod scheduler;
-mod serializable_traits;
+pub mod serializable_traits;
 mod shuffle;
 mod split;
 pub use env::DeploymentMode;

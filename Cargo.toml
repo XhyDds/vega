@@ -5,7 +5,6 @@ authors = ["raja <rajasekar3eg@gmail.com>"]
 edition = "2018"
 
 build = "build.rs"
-
 [lib]
 name = "vega"
 
@@ -35,10 +34,10 @@ tokio = { version = "0.2.18", features = ["macros", "parking_lot", "rt-threaded"
 tokio-util = { version = "0.3.1", features = ["compat"] }
 uuid = { version = "0.8", features = ["v4"] }
 regex = "1.3.6"
-# hdrs = "0.2.0"
+hdrs = "0.2.0"
 
 # high precision lib
-num-bigfloat = "1.6.2"
+astro-float = "0.7.1"
 
 # randomness
 rand = "0.7.3"

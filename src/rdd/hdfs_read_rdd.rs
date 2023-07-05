@@ -52,7 +52,7 @@ use std::sync::{Arc, Weak};
 
 use crate::context::Context;
 use crate::dependency::Dependency;
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::hosts::Hosts;
 use crate::rdd::{Rdd, RddBase, RddVals};
 use crate::serializable_traits::{AnyData, Data};
@@ -78,21 +78,21 @@ use serde_derive::Serialize;
 // }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct hdfsSplit<T> {
+pub struct HdfsSplit<T> {
     rdd_id: i64,
     index: usize,
     values: Arc<Vec<T>>,
 }
 
-impl<T: Data> Split for hdfsSplit<T> {
+impl<T: Data> Split for HdfsSplit<T> {
     fn get_index(&self) -> usize {
         self.index
     }
 }
 
-impl<T: Data> hdfsSplit<T> {
+impl<T: Data> HdfsSplit<T> {
     fn new(rdd_id: i64, index: usize, values: Arc<Vec<T>>) -> Self {
-        hdfsSplit {
+        HdfsSplit {
             rdd_id,
             index,
             values,
@@ -113,7 +113,7 @@ impl<T: Data> hdfsSplit<T> {
 /// num_slices: 分区数量
 /// context: 环境/上下文(接受一个弱引用)
 #[derive(Serialize, Deserialize)]
-pub struct hdfsVals<T> {
+pub struct HdfsVals<T> {
     vals: Arc<RddVals>,
     #[serde(skip_serializing, skip_deserializing)]
     context: Weak<Context>,
@@ -125,9 +125,9 @@ pub struct hdfsVals<T> {
 pub struct HdfsReadRdd<T> {
     #[serde(skip_serializing, skip_deserializing)]
     name: Mutex<String>,
-    rdd_vals: Arc<hdfsVals<T>>,
+    rdd_vals: Arc<HdfsVals<T>>,
     nn: Mutex<String>,
-    isFile: Mutex<bool>,
+    is_file: Mutex<bool>,
     path: Mutex<String>,
 }
 
@@ -137,7 +137,7 @@ impl<T: Data> Clone for HdfsReadRdd<T> {
             name: Mutex::new(self.name.lock().clone()),
             rdd_vals: self.rdd_vals.clone(),
             nn: Mutex::new(self.nn.lock().clone()),
-            isFile: Mutex::new(self.isFile.lock().clone()),
+            is_file: Mutex::new(self.is_file.lock().clone()),
             path: Mutex::new(self.path.lock().clone()),
         }
     }
@@ -152,7 +152,7 @@ impl<T: Data> HdfsReadRdd<T> {
         context: Arc<Context>,
         data: I,
         num_slices: usize,
-        isFile: bool,
+        is_file: bool,
         path: String,
     ) -> Result<Self>
     where
@@ -165,7 +165,7 @@ impl<T: Data> HdfsReadRdd<T> {
 
         Ok(HdfsReadRdd {
             name: Mutex::new("hdfs_collection".to_owned()),
-            rdd_vals: Arc::new(hdfsVals {
+            rdd_vals: Arc::new(HdfsVals {
                 //downgrade()方法返回一个Weak<T>类型的对象，Weak<T>是一个弱引用，不会增加引用计数
                 context: Arc::downgrade(&context),
                 //由context生成rdd_id
@@ -176,7 +176,7 @@ impl<T: Data> HdfsReadRdd<T> {
                 num_slices,
             }),
             nn: Mutex::new(nn),
-            isFile: Mutex::new(isFile),
+            is_file: Mutex::new(is_file),
             path: Mutex::new(path),
         })
     }
@@ -279,7 +279,7 @@ impl<T: Data> RddBase for HdfsReadRdd<T> {
     fn splits(&self) -> Vec<Box<dyn Split>> {
         (0..self.rdd_vals.splits_.len())
             .map(|i| {
-                Box::new(hdfsSplit::new(
+                Box::new(HdfsSplit::new(
                     self.rdd_vals.vals.id as i64,
                     i,
                     self.rdd_vals.splits_[i as usize].clone(),
@@ -318,7 +318,7 @@ impl<T: Data> Rdd for HdfsReadRdd<T> {
             name: Mutex::new(self.name.lock().clone()),
             rdd_vals: self.rdd_vals.clone(),
             nn: Mutex::new(self.nn.lock().clone()),
-            isFile: Mutex::new(self.isFile.lock().clone()),
+            is_file: Mutex::new(self.is_file.lock().clone()),
             path: Mutex::new(self.path.lock().clone()),
         })
     }
@@ -328,7 +328,7 @@ impl<T: Data> Rdd for HdfsReadRdd<T> {
     }
 
     fn compute(&self, split: Box<dyn Split>) -> Result<Box<dyn Iterator<Item = Self::Item>>> {
-        if let Some(s) = split.downcast_ref::<hdfsSplit<T>>() {
+        if let Some(s) = split.downcast_ref::<HdfsSplit<T>>() {
             Ok(s.iterator())
         } else {
             panic!("Got split object from different concrete type other than hdfsSplit")
