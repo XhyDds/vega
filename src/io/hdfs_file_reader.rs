@@ -1,4 +1,4 @@
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 use hdrs::{Client, OpenOptions};
 use std::fs;
 use std::io::{BufReader, Read};
@@ -19,7 +19,7 @@ use crate::Fn;
 use log::debug;
 use rand::prelude::*;
 use serde_derive::{Deserialize, Serialize};
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 pub struct HdfsReaderConfig {
     filter_ext: Option<std::ffi::OsString>,
     expect_dir: bool,
@@ -27,7 +27,7 @@ pub struct HdfsReaderConfig {
     dir_path: PathBuf,
     executor_partitions: Option<u64>,
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl HdfsReaderConfig {
     /// Read all the files from a directory or a path.
     pub fn new<T: Into<PathBuf>>(path: T) -> HdfsReaderConfig {
@@ -82,7 +82,7 @@ impl HdfsReaderConfig {
         self
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl ReaderConfiguration<Vec<u8>> for HdfsReaderConfig {
     fn make_reader<F, U>(self, context: Arc<Context>, decoder: F) -> SerArc<dyn Rdd<Item = U>>
     where
@@ -104,7 +104,7 @@ impl ReaderConfiguration<Vec<u8>> for HdfsReaderConfig {
         SerArc::new(decoder)
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl ReaderConfiguration<PathBuf> for HdfsReaderConfig {
     fn make_reader<F, U>(self, context: Arc<Context>, decoder: F) -> SerArc<dyn Rdd<Item = U>>
     where
@@ -130,7 +130,7 @@ impl ReaderConfiguration<PathBuf> for HdfsReaderConfig {
 /// Reads all files specified in a given directory from the local directory
 /// on all executors on every worker node.
 #[derive(Clone, Serialize, Deserialize)]
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 pub struct HdfsReader<T> {
     id: usize,
     namenode: String,
@@ -146,7 +146,7 @@ pub struct HdfsReader<T> {
     splits: Vec<SocketAddrV4>,
     _marker_reader_data: PhantomData<T>,
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl<T: Data> HdfsReader<T> {
     fn new(config: HdfsReaderConfig, context: Arc<Context>) -> Self {
         let HdfsReaderConfig {
@@ -353,7 +353,7 @@ impl<T: Data> HdfsReader<T> {
         }
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 macro_rules! impl_common_lfs_rddb_funcs {
     () => {
         fn get_rdd_id(&self) -> usize {
@@ -384,7 +384,7 @@ macro_rules! impl_common_lfs_rddb_funcs {
         }
     };
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl RddBase for HdfsReader<BytesReader> {
     impl_common_lfs_rddb_funcs!();
 
@@ -408,7 +408,7 @@ impl RddBase for HdfsReader<BytesReader> {
         splits
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl RddBase for HdfsReader<FileReader> {
     impl_common_lfs_rddb_funcs!();
 
@@ -429,7 +429,7 @@ impl RddBase for HdfsReader<FileReader> {
         splits
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 macro_rules! impl_common_lfs_rdd_funcs {
     () => {
         fn get_rdd(&self) -> Arc<dyn Rdd<Item = Self::Item>>
@@ -444,7 +444,7 @@ macro_rules! impl_common_lfs_rdd_funcs {
         }
     };
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl Rdd for HdfsReader<BytesReader> {
     type Item = BytesReader;
 
@@ -466,7 +466,7 @@ impl Rdd for HdfsReader<BytesReader> {
         )
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl Rdd for HdfsReader<FileReader> {
     type Item = FileReader;
 
@@ -484,7 +484,7 @@ impl Rdd for HdfsReader<FileReader> {
         ) as Box<dyn Iterator<Item = Self::Item>>)
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BytesReader {
     files: Vec<PathBuf>,
@@ -492,13 +492,13 @@ pub struct BytesReader {
     host: Ipv4Addr,
     namenode: String,
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl Split for BytesReader {
     fn get_index(&self) -> usize {
         self.idx
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl Iterator for BytesReader {
     type Item = Vec<u8>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -518,20 +518,20 @@ impl Iterator for BytesReader {
         }
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FileReader {
     files: Vec<PathBuf>,
     idx: usize,
     host: Ipv4Addr,
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl Split for FileReader {
     fn get_index(&self) -> usize {
         self.idx
     }
 }
-//#[cfg(any(hdrs))]
+#[cfg(any(hdrs))]
 impl Iterator for FileReader {
     type Item = PathBuf;
     fn next(&mut self) -> Option<Self::Item> {
