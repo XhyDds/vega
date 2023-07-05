@@ -2,7 +2,7 @@ use std::time::Instant;
 use vega::io::*;
 use vega::*;
 use std::{env, fs, os::unix::prelude::FileExt, io::Write};
-
+#[cfg(any(hdrs))]
 fn main() -> Result<()> {
     let start = Instant::now();
     let mut file = std::fs::File::create("/tmp/env.txt").expect("create failed");
