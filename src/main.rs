@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let col = sc.make_rdd((0..sz).collect::<Vec<_>>(), 2);
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
     // let y: f64 = rng.gen();
-    let coordinate_iter = col.map(Fn!(|_i| {
+    let coordinate_iter = col.map(Fn!(|_| {
         let mut rng = rand::thread_rng();
         // let y:f64 = rng.gen();
         let pair = (

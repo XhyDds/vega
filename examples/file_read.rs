@@ -1,8 +1,9 @@
-use chrono::prelude::*;
+use std::time::Instant;
 use vega::io::*;
 use vega::*;
 
 fn main() -> Result<()> {
+    let start = Instant::now();
     let context = Context::new()?;
     let deserializer = Fn!(|file: Vec<u8>| {
         String::from_utf8(file)
@@ -30,5 +31,7 @@ fn main() -> Result<()> {
     //let avg = sum.map(Fn!(|(k, (v, c))| (k, v as f64 / c)));
     //let res = avg.collect().unwrap();
     println!("result: {:?}", line.collect().unwrap());
+    let duration = start.elapsed();
+    println!("Time elapsed is: {:?}", duration);
     Ok(())
 }
