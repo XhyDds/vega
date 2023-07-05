@@ -6,22 +6,39 @@
 #              .map(lambda word: (word, 1)) \
 #              .reduceByKey(lambda a, b: a + b)
 # counts.saveAsTextFile("file:///usr/local/spark/output")
-print("hello")
+# print("hello")
+import timeit
+import time
+import random
 import os
 import pyspark
 from pyspark import SparkContext, SparkConf
 
-conf = SparkConf().setAppName("test_SamShare").setMaster("local[4]")#本地使用四个线程
 
-sc = SparkContext(conf=conf)
+def inside(p):
+    x, y = random.random(), random.random()
+    return x*x + y*y < 1
 
-# 使用 parallelize方法直接实例化一个RDD
-rdd = sc.parallelize(range(1,100000),4) # 这里的 4 指的是分区数量
-list=rdd.take(100)#获取前100个元素
-print(list)
-# [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+def calc():
+    conf = SparkConf().setAppName("test_SamShare").setMaster("local[4]")#本地使用四个线程
+    sc = SparkContext(conf=conf)
 
+    stt=time.time()
+    NUM_SAMPLES = 1000000
+    count = sc.parallelize(range(0, NUM_SAMPLES)).filter(inside).count()
+    pi = 4 * count / NUM_SAMPLES
+    ett=time.time()
 
+    
+    print(pi)
+    print("消耗时间",ett-stt)
+    # sc.stop()
+
+# print(timeit.timeit(calc,1))
+pst=time.time()
+calc()
+pet=time.time()
+print("总消耗时间",pet-pst)
 """
 ----------------------------------------------
                 Transform算子解析
