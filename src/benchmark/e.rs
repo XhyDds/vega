@@ -8,6 +8,7 @@ use vega::*;
 /// 更高精度的库函数，但是要注意是否可以支持序列化。
 /// 这里使用Context的引用传参，如果直接传入会大大损失性能
 /// 6.114s->4.627s
+#[allow(dead_code)]
 pub fn calc_e(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>) {
     use num_bigfloat::ZERO;
     let col = sc.make_rdd(
