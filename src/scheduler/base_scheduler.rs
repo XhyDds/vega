@@ -196,10 +196,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         L: JobListener,
     {
         let FetchFailedVals {
-            server_uri,
-            shuffle_id,
-            map_id,
-            ..
+            server_uri, map_id, ..
         } = failed_vals;
         let shuffle = self
             .fetch_from_stage_cache(stage_id)
