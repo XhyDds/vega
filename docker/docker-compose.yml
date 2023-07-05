@@ -1,30 +1,32 @@
-version: '3.7'
-
-networks:
-  native-spark:
+version: '3.8'
 
 services:
-  vega_master:
-    image: vega:latest
-    ports:
-      - "3000"
-    tty: true
-    networks:
-      native-spark:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    prots:
+      - '9090:9090'
     volumes:
-      - type: "bind"
-        source: "../target"
-        target: "/home/dev"
-    environment:
-      VEGA_DEPLOYMENT_MODE: distributed
-    depends_on:
-      - vega_worker
+      - ./monitoring/prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.external-url=http://localhost:9090'
 
-  vega_worker:
-    image: vega:latest
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
     ports:
-      - "10500"
-      - "22"
-    tty: true
-    networks:
-      native-spark:
+      - '3000:3000'
+    volumes:
+      - ./monitoring/grafana/data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
+  vega_master:
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile

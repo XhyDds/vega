@@ -1,9 +1,16 @@
 use std::time::Instant;
 use vega::io::*;
 use vega::*;
+use std::{env, fs, os::unix::prelude::FileExt, io::Write};
 
 fn main() -> Result<()> {
     let start = Instant::now();
+    let mut file = std::fs::File::create("/tmp/env.txt").expect("create failed");
+    for (key, value) in env::vars() {
+        let msg = format!("{}: {}", key, value);
+        file.write(msg.as_bytes()).expect("write failed");
+    }
+
     let context = Context::new()?;
     let deserializer = Fn!(|file: Vec<u8>| {
         String::from_utf8(file)
@@ -12,10 +19,7 @@ fn main() -> Result<()> {
             .map(|s| s.to_string())
             .collect::<Vec<_>>()
     });
-    let lines = context.read_source(
-        LocalFsReaderConfig::new("/home/hao/lab3-data.csv"),
-        deserializer,
-    );
+    let lines = context.read_source(HdfsReaderConfig::new("/csv_folder/1.csv"), deserializer);
     println!("successfully read source");
     let line = lines.flat_map(Fn!(|lines: Vec<String>| {
         Box::new(lines.into_iter().map(|line| {

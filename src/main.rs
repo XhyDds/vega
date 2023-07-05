@@ -1,4 +1,4 @@
-use std::time::{Instant};
+use std::time::Instant;
 
 // use vega::*;
 
@@ -40,8 +40,8 @@ fn main() -> Result<()> {
             0
         }
     }));
-    let res = coordinate_iter.fold(0, Fn!(|acc,i|acc+i)).unwrap();
-    println!("result: {:?}", 1.0*res as f64*4.0/sz as f64);
+    let res = coordinate_iter.fold(0, Fn!(|acc, i| acc + i)).unwrap();
+    println!("result: {:?}", 1.0 * res as f64 * 4.0 / sz as f64);
 
     let end = start.elapsed();
     println!("运算时间:{:?}",end);
