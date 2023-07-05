@@ -7,9 +7,10 @@ use vega::*;
 /// num_slices(Option<usize>)是rdd分区数量
 /// 这里使用Context的引用传参，如果直接传入会大大损失性能
 /// 2.971s->1.130s
+// #[cfg(feature="hdrs_valid")]
 pub fn calc_pi(sc:&Arc<Context>,param:Option<i32>,num_slices:Option<usize>) {
     let start = Instant::now();
-    let param=param.unwrap_or(1000000);
+    let param=param.unwrap_or(30000000);
     let num_slices=num_slices.unwrap_or(2);
     let col = sc.make_rdd(0..param, num_slices);
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
