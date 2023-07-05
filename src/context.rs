@@ -307,21 +307,12 @@ impl Context {
                 .map_err(|x| Error::ParseHostAddress(format!("{}", x)))?;
             address_map.push(SocketAddrV4::new(address_ip, port));
             println!("{}", key_path);
-            // Create work dir:
 
-            //test
-            let job_work_dir_str = &job_work_dir_str.replace(
-                env::Configuration::get()
-                    .local_dir
-                    .to_str()
-                    .ok_or_else(|| Error::PathToString(job_work_dir.clone()))?,
-                &format!(
-                    "{}{}",
-                    "/home/",
-                    slave.ip.as_str().split('@').nth(0).unwrap()
-                ),
+            let work_dir = format!(
+                "{}{}",
+                "/home/",
+                slave.ip.as_str().split('@').nth(0).unwrap()
             );
-            println!("{}", job_work_dir_str);
 
             Command::new("ssh")
                 .args(&["-i", key_path, address, "mkdir", &job_work_dir_str])
@@ -346,10 +337,27 @@ impl Context {
             // Copy binary:
             //赋值二进制文件到slave中
             let remote_path = format!("{}:{}/{}", address, job_work_dir_str, binary_name);
-            println!("{}", binary_path_str);
-            println!("{}", remote_path);
+            // println!("{}", binary_path_str);
+            // println!("{}", remote_path);
             Command::new("scp")
                 .args(&["-i", key_path, &binary_path_str, &remote_path])
+                .output()
+                .map_err(|e| Error::CommandOutput {
+                    source: e,
+                    command: "scp executor".into(),
+                })?;
+
+            // Copy hosts.conf:
+            // 赋值hosts.conf到slave/~/中(强制覆盖)
+            let hosts_path = std::env::home_dir()
+                .ok_or(Error::NoHome)?
+                .join("hosts.conf");
+            let hosts_path_str = hosts_path.to_str().unwrap();
+            let remote_hosts_path = format!("{}:{}/hosts.conf", address, work_dir);
+            println!("{}", hosts_path_str);
+            println!("{}", remote_hosts_path);
+            Command::new("scp")
+                .args(&["-f", "-i", key_path, &hosts_path_str, &remote_hosts_path])
                 .output()
                 .map_err(|e| Error::CommandOutput {
                     source: e,

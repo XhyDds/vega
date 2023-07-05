@@ -7,6 +7,7 @@
 #              .reduceByKey(lambda a, b: a + b)
 # counts.saveAsTextFile("file:///usr/local/spark/output")
 # print("hello")
+from operator import add
 import timeit
 import time
 import random
@@ -16,8 +17,11 @@ from pyspark import SparkContext, SparkConf
 
 
 def inside(p):
-    x, y = random.random(), random.random()
-    return x*x + y*y < 1
+    x, y = random.random()*200-100, random.random()*200-100
+    if x*x+y*y<=100.0*100.0:
+        return 1
+    else:
+        return 0
 
 def calc():
     conf = SparkConf().setAppName("test_SamShare").setMaster("local[4]")#本地使用四个线程
@@ -25,11 +29,13 @@ def calc():
 
     stt=time.time()
     NUM_SAMPLES = 1000000
-    count = sc.parallelize(range(0, NUM_SAMPLES)).filter(inside).count()
-    pi = 4 * count / NUM_SAMPLES
+    col = sc.parallelize(range(0, NUM_SAMPLES),2)
+    coordinate_iter=col.map(inside)
+    res=coordinate_iter.fold(0.0,add)
+    pi = 4 * res/ NUM_SAMPLES
     ett=time.time()
 
-    
+
     print(pi)
     print("消耗时间",ett-stt)
     # sc.stop()
