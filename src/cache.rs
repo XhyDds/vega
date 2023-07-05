@@ -10,10 +10,10 @@ pub(crate) enum CachePutResponse {
     CachePutFailure,
 }
 
-type CacheMap = Arc<DashMap<((usize, usize), usize), (Vec<u8>, usize)>>;
+type CacheMap = Arc<DashMap<((usize, usize), usize), (Vec<u8>, usize)>>;//Dashmap: concurrent associative array/hashmap的一个实现
 
 // Despite the name, it is currently unbounded cache. Once done with LRU iterator, have to make this bounded.
-// Since we are storing everything as serialized objects, size estimation is as simple as getting the length of byte vector
+// Since we are storing everything as serialized objects, `size estimation` is as simple as getting the length of byte vector
 #[derive(Debug, Clone)]
 pub(crate) struct BoundedMemoryCache {
     max_mbytes: usize,
@@ -28,7 +28,7 @@ impl BoundedMemoryCache {
         BoundedMemoryCache {
             max_mbytes: 2000, // in MB
             next_key_space_id: Arc::new(AtomicUsize::new(0)),
-            current_bytes: 0,
+            current_bytes: 0, //已占空间
             map: Arc::new(DashMap::new()),
         }
     }
