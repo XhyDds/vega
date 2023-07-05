@@ -196,19 +196,23 @@ pub(crate) trait NativeScheduler: Send + Sync {
         L: JobListener,
     {
         let FetchFailedVals {
-            server_uri, map_id, ..
+            server_uri,
+            shuffle_id,
+            map_id,
+            ..
         } = failed_vals;
         // TODO: mapoutput tracker needs to be finished for this
         // let failed_stage = self.id_to_stage.lock().get(&stage_id).?.clone();
         let failed_stage = self.fetch_from_stage_cache(stage_id);
 
-        println!("failed stage: {:?}", failed_stage.num_partitions);
-        let shuffle = failed_stage
-            .shuffle_dependency
-            .clone()
-            .ok_or_else(|| Error::Other)
-            .expect("shuffle dependency not found");
-        let shuffle_id = shuffle.get_shuffle_id();
+        println!("failed stage: {:?}", failed_stage.output_locs);
+        // println!("failed stage: {:?}", failed_stage);
+        // let shuffle = failed_stage
+        //     .shuffle_dependency
+        //     .clone()
+        //     .ok_or_else(|| Error::Other)
+        //     .expect("shuffle dependency not found");
+        // let shuffle_id = shuffle.get_shuffle_id();
 
         // 从running中移除失败的stage，并加入到failed中
         jt.running.lock().await.remove(&failed_stage);
@@ -239,6 +243,12 @@ pub(crate) trait NativeScheduler: Send + Sync {
     {
         // FIXME: logging
         // TODO: add to Accumulator
+
+        println!(
+            "result:{:?},task_id:{}",
+            results,
+            completed_event.task.get_task_id()
+        );
 
         let result_type = completed_event
             .task
@@ -645,7 +655,7 @@ macro_rules! impl_common_scheduler_funcs {
         fn remove_output_loc_from_stage(&self, shuffle_id: usize, map_id: usize, server_uri: &str) {
             self.shuffle_to_map_stage
                 .get_mut(&shuffle_id)
-                .unwrap()
+                .unwrap() //获取stage
                 .remove_output_loc(map_id, server_uri);
         }
 

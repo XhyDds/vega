@@ -22,6 +22,13 @@ services:
     volumes:
       - ./monitoring/grafana/data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+
+  node_exporter:
+    image: prom/node-exporter
+    restart: always
+    ports:
+      - '9100:9100'
+      
   # vega_master:
   #   build:
   #     context: ..
