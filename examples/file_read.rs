@@ -2,7 +2,6 @@ use std::time::Instant;
 use vega::io::*;
 use vega::*;
 use std::{env, fs, os::unix::prelude::FileExt, io::Write};
-#[cfg(any(hdrs))]
 fn main() -> Result<()> {
     //std::env::set_current_dir("/home/lml");
     std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
