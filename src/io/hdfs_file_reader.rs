@@ -1,5 +1,4 @@
-use hdrs::{Client, OpenOptions};
-use std::fs;
+use hdrs::Client;
 use std::io::{BufReader, Read};
 use std::marker::PhantomData;
 use std::net::{Ipv4Addr, SocketAddrV4};
@@ -39,10 +38,10 @@ impl HdfsReaderConfig {
                     Some(pos) => {
                         res.replace_range(pos.., ":9000");
                         res
-                    },
+                    }
                     None => res,
                 }
-            },
+            }
             //Ok(_) => String::from("192.168.179.129:9000"),
             Err(_) => String::from("localhost:9000"),
         };
@@ -307,14 +306,16 @@ impl<T: Data> HdfsReader<T> {
             {
                 partition.push(file);
                 curr_part_size = new_part_size;
-            } else if size > avg_partition_size as u64 {//单个大文件
+            } else if size > avg_partition_size as u64 {
+                //单个大文件
                 if !partition.is_empty() {
                     partitions.push(partition);
                 }
                 partitions.push(vec![file]);
                 partition = vec![];
                 curr_part_size = 0;
-            } else {//要开新分区了
+            } else {
+                //要开新分区了
                 if !partition.is_empty() {
                     partitions.push(partition);
                 }
@@ -322,7 +323,8 @@ impl<T: Data> HdfsReader<T> {
                 curr_part_size = size;
             }
         }
-        if !partition.is_empty() {//推入最后一个分区
+        if !partition.is_empty() {
+            //推入最后一个分区
             partitions.push(partition);
         }
 
