@@ -300,7 +300,8 @@ impl<T: Data> HdfsReader<T> {
             }
 
             let new_part_size = curr_part_size + size;
-            let larger_than_mean = rng.gen::<bool>(); //随机生成？？
+            //let larger_than_mean = rng.gen::<bool>(); //随机生成？？
+            let larger_than_mean = {size > file_size_mean};
             if (larger_than_mean && new_part_size < high_part_size_bound)//正常情况
                 || (!larger_than_mean && new_part_size <= avg_partition_size)
             {
