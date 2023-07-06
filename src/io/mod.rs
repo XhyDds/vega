@@ -9,7 +9,7 @@ use crate::SerArc;
 mod hdfs_file_reader;
 
 #[cfg(feature = "hdrs_valid")]
-mod hdfs_file_writer;
+mod hdfs_io;
 
 mod local_file_reader;
 
@@ -17,7 +17,7 @@ mod local_file_reader;
 pub use hdfs_file_reader::{HdfsReader, HdfsReaderConfig};
 
 #[cfg(feature = "hdrs_valid")]
-pub use hdfs_file_writer::HdfsIO;
+pub use hdfs_io::HdfsIO;
 
 pub use local_file_reader::{LocalFsReader, LocalFsReaderConfig};
 

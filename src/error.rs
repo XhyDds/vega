@@ -102,6 +102,9 @@ pub enum Error {
     #[error("failed to read hdfs file from namenode: {0}")]
     HdfsRead(String),
 
+    #[error("failed to write to hdfs file in namenode: {0}")]
+    HdfsWrite(String),
+
     #[error("failed reading from input source")]
     InputRead(#[source] std::io::Error),
 

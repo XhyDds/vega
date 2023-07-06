@@ -1,9 +1,7 @@
-use std::sync::Arc;
 use std::time::Instant;
 use std::{env, io::Write};
-use vega::io::{HdfsReaderConfig, HdfsIO};
 use vega::*;
-use vega::rdd::{HdfsReadRdd, MapperRdd};
+use vega::io::HdfsIO;
 fn main() -> Result<()> {
     std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
     std::env::set_var("HADOOP_HOME", "/home/lml/hadoop-3.3.5");
@@ -22,9 +20,11 @@ fn main() -> Result<()> {
             .map(|s| s.to_string())
             .collect::<Vec<_>>()
     });
+    let mut H = HdfsIO::new("192.168.179.129".to_string()).unwrap();
+    let lines = H.read_to_rdd("/csv_folder", &context, 2, deserializer).unwrap();
     //let lines = context.read_source(HdfsReaderConfig::new("/csv"), deserializer);
-    let lines = HdfsReadRdd::new(context.clone(), "/csv".to_string(), 2);
-    let lines = lines.map(deserializer);
+    //let lines = HdfsReadRdd::new(context.clone(), "/csv".to_string(), 2);
+    //let lines = lines.map(deserializer);
     let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
             Box::new(lines.into_iter().map(|line| {
                 let line = line.split(',').collect::<Vec<_>>();
@@ -35,10 +35,7 @@ fn main() -> Result<()> {
             })) as Box<dyn Iterator<Item = _>>
         }));
     let res = lines.collect().unwrap();
-    // for content in res {
-    //     println!("{}", String::from_utf8(content).unwrap());
-    // }
-    println!("result:{:?}", res);
+    println!("{:?}", H.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/1.txt", true));
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
     Ok(())

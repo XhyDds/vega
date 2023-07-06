@@ -1,4 +1,4 @@
-//! This module implements parallel collection RDD for dividing the input collection for parallel processing.
+//! This module implements Hdfs Read RDD for reading files in Hdfs
 use std::io::{BufReader, Read};
 use std::sync::{Arc, Weak};
 
@@ -6,7 +6,7 @@ use crate::context::Context;
 use crate::dependency::Dependency;
 use crate::error::Result;
 use crate::rdd::{Rdd, RddBase, RddVals};
-use crate::serializable_traits::{AnyData, Data};
+use crate::serializable_traits::AnyData;
 use crate::split::Split;
 use crate::hosts::Hosts;
 use parking_lot::Mutex;
@@ -14,7 +14,7 @@ use serde::Deserialize;
 use serde_derive::{Serialize};
 use hdrs::Client;
 
-/// A collection of objects which can be sliced into partitions with a partitioning function.
+
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct HdfsReadRddSplit {
@@ -97,9 +97,8 @@ impl Clone for HdfsReadRdd {
 }
 
 /// 函数HdfsReadRdd::new
-/// 接收一个迭代器data和分区数量num_slices
+/// 接收一个context, 一个路径path和分区数量num_slices
 /// 产生一个HdfsReadRdd对象
-/// HdfsReadRdd对象包含一个Mutex<String>和一个Arc<HdfsReadRddVals<T>>
 ///
 impl HdfsReadRdd {
     pub fn new(context: Arc<Context>, path: String, num_slices: usize) -> Self
@@ -117,7 +116,6 @@ impl HdfsReadRdd {
                     None => res,
                 }
             }
-            //Ok(_) => String::from("192.168.179.129:9000"),
             Err(_) => String::from("localhost:9000"),
         };
 
@@ -142,9 +140,9 @@ impl HdfsReadRdd {
     }
 
     /**
-     * slice 接收data和分区数量 num_slices
-     * 消耗掉data中的元素，产生一堆内存中分区对象
-     * 生成将data分成num_slices个分区
+     * slice 接收nn，path和分区数量 num_slices
+     * 读取hdfs对应路径，将它们分区
+     * 如果文件数量少于分区数量，则将分区数量改为文件数量
      */
     fn slice(nn: &str, path: &str, num_slices: usize) -> Vec<Vec<String>>
     {
