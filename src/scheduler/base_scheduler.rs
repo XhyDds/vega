@@ -208,7 +208,6 @@ pub(crate) trait NativeScheduler: Send + Sync {
         let failed_stage = self.fetch_from_stage_cache(stage_id);
 
         println!("failed stage: {:?}", failed_stage.output_locs);
-        // println!("failed stage: {:?}", failed_stage);
         // let shuffle = failed_stage
         //     .shuffle_dependency
         //     .clone()
@@ -219,11 +218,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         // 从running中移除失败的stage，并加入到failed中
         jt.running.lock().await.remove(&failed_stage);
         jt.failed.lock().await.insert(failed_stage);
-        // FIXME: logging
-        // 函数出错，FIXYOU.
-        println!("here");
         self.remove_output_loc_from_stage(shuffle_id, map_id, &server_uri);
-        println!("here2");
         self.unregister_map_output(shuffle_id, map_id, server_uri);
         jt.failed
             .lock()
@@ -386,7 +381,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 }
             }
         }
-        //log::error!("task_id:{},result:{:?}", task_id, results);
+        log::debug!("task_id:{},result:{:?}", task_id, results);
         Ok(())
     }
 

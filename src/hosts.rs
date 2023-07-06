@@ -39,15 +39,10 @@ impl Hosts {
             source: e,
             path: path.as_ref().into(),
         })?;
-        // //TEST
-        // println!("there1");
         toml::from_str(&s).map_err(|e| Error::ParseHosts {
             source: e,
             path: path.as_ref().into(),
         })
-        // //TEST
-        // ;
-        // println!("there2");
         // result
     }
 }
