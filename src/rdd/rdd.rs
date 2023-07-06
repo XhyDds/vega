@@ -474,7 +474,6 @@ pub trait Rdd: RddBase + 'static {
         let rd = self.get_rdd();
         //运行run_job函数，发送待处理的rdd:rd，以及collect的函数:cl
         let results = _results.run_job(rd, cl)?;
-        //TOBE DONE
         let size = results.iter().fold(0, |a, b: &Vec<Self::Item>| a + b.len());
         Ok(results
             .into_iter()
