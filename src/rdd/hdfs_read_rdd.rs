@@ -15,20 +15,6 @@ use serde_derive::{Serialize};
 use hdrs::Client;
 
 /// A collection of objects which can be sliced into partitions with a partitioning function.
-pub trait Chunkable<D>
-where
-    D: Data,
-{
-    fn slice_with_set_parts(self, parts: usize) -> Vec<Arc<Vec<D>>>;
-
-    fn slice(self) -> Vec<Arc<Vec<D>>>
-    where
-        Self: Sized,
-    {
-        let as_many_parts_as_cpus = num_cpus::get();
-        self.slice_with_set_parts(as_many_parts_as_cpus)
-    }
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct HdfsReadRddSplit {
@@ -190,19 +176,6 @@ impl HdfsReadRdd {
         }
     }
 }
-
-// impl RddBase for HdfsReadRdd 
-// {
-//     fn cogroup_iterator_any(
-//         &self,
-//         split: Box<dyn Split>,
-//     ) -> Result<Box<dyn Iterator<Item = Box<dyn AnyData>>>> {
-//         log::debug!("inside iterator_any parallel collection",);
-//         Ok(Box::new(self.iterator(split)?.map(|(k, v)| {
-//             Box::new((k, Box::new(v) as Box<dyn AnyData>)) as Box<dyn AnyData>
-//         })))
-//     }
-// }
 
 impl RddBase for HdfsReadRdd {
     fn get_rdd_id(&self) -> usize {

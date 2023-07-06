@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Instant;
 use std::{env, io::Write};
 use vega::io::{HdfsReaderConfig, HdfsIO};
@@ -22,7 +23,7 @@ fn main() -> Result<()> {
             .collect::<Vec<_>>()
     });
     //let lines = context.read_source(HdfsReaderConfig::new("/csv"), deserializer);
-    let lines = HdfsReadRdd::new(context.clone(), "/csv_folder".to_string(), 2);
+    let lines = HdfsReadRdd::new(context.clone(), "/csv".to_string(), 2);
     let lines = lines.map(deserializer);
     let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
             Box::new(lines.into_iter().map(|line| {
