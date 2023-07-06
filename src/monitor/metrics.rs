@@ -6,18 +6,22 @@ use prometheus_client::registry::Registry;
 
 use std::sync::Arc;
 
+use crate::context::Context;
+
 use tide::{Middleware, Next, Request, Result};
 
-pub async fn add_metric() -> std::result::Result<(), std::io::Error> {
-    // tide::log::start();
-
+pub async fn add_metric(sc: Arc<Context>) -> std::result::Result<(), std::io::Error> {
     let mut registry = Registry::default();
     let http_requests_total = Family::<Labels, Counter>::default();
+    let node_num: Counter = Counter::default();
+    
     registry.register(
         "http_requests_total",
         "Number of HTTP requests",
         http_requests_total.clone(),
     );
+    registry.register("node_num", "Number of nodes in cluster", node_num.clone());
+    node_num.inc_by(sc.address_map.len() as u64);
 
     let middleware = MetricsMiddleware {
         http_requests_total,
@@ -34,7 +38,7 @@ pub async fn add_metric() -> std::result::Result<(), std::io::Error> {
             encode(&mut encoded, &req.state().registry).unwrap();
             let response = tide::Response::builder(200)
                 .body(encoded)
-                .content_type("application/openmetrics-text; version=1.0.0; charset=utf-8")
+                .content_type("text/plain; version=1.0.0; charset=utf-8")
                 .build();
             Ok(response)
         });

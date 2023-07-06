@@ -6,7 +6,7 @@ mod benchmark;
 async fn main() -> Result<()> {
     let sc: std::sync::Arc<Context> = Context::new()?;
 
-    tokio::spawn(monitor::metrics::add_metric());
+    tokio::spawn(monitor::metrics::add_metric(sc.clone()));
 
     let start = Instant::now();
     benchmark::pi::calc_pi(&sc, Some(1000000), Some(2));
