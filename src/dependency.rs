@@ -235,7 +235,7 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
                 bucket.insert(k, aggregator.create_combiner.call((v,)));
             } //把所有v的内容hash到各个桶里
         }
-        //这时得到的映射为：i->Vec<(K, V)>的HashMap，i为桶的编号，hash(K)=i
+        //这时得到的映射为：i->Vec<(K, V)>的HashMap，i为桶的编号，hash(K)=i=reduce_id
 
         for (i, bucket) in buckets.into_iter().enumerate() {
             let set: Vec<(K, C)> = bucket.into_iter().collect();
