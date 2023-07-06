@@ -243,12 +243,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
     {
         // FIXME: logging
         // TODO: add to Accumulator
-
-        log::error!(
-            "task_id:{},result:{:?}",
-            completed_event.task.get_task_id(),
-            results
-        );
+        let task_id = completed_event.task.get_task_id();
 
         let result_type = completed_event
             .task
@@ -390,6 +385,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 }
             }
         }
+        log::error!("task_id:{},result:{:?}", task_id, results);
         Ok(())
     }
 
