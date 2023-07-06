@@ -456,6 +456,7 @@ impl NativeScheduler for DistributedScheduler {
             return;
         }
         log::debug!("inside submit task");
+        log::error!("submit task {}",task.get_task_id());
         let event_queues_clone = self.event_queues.clone();
         // let shuffle = self
         //     .stage_cache
@@ -472,9 +473,11 @@ impl NativeScheduler for DistributedScheduler {
             loop {
                 match TcpStream::connect(&target_executor).await {
                     Ok(mut stream) => {
+                        log::error!("connected to exec @{}", target_executor.port());
                         let (reader, writer) = stream.split();
                         let reader = reader.compat();
                         let writer = writer.compat_write();
+                        log::error!("serialize task:exec @{}", target_executor.port());
                         let task_bytes = bincode::serialize(&task).unwrap();
                         log::debug!(
                             "sending task #{} of {} bytes to exec @{},",
@@ -482,6 +485,8 @@ impl NativeScheduler for DistributedScheduler {
                             task_bytes.len(),
                             target_executor.port(),
                         );
+
+                        log::error!("sending message to exec @{}", target_executor.port());
 
                         // TODO: 可考虑remove blocking call when possible
                         futures::executor::block_on(async {
@@ -496,7 +501,7 @@ impl NativeScheduler for DistributedScheduler {
                         });
 
                         log::debug!("sent data to exec @{}", target_executor.port());
-                        println!(
+                        log::error!(
                             "sent task {} to exec @{} ({})",
                             task.get_task_id(),
                             target_executor.port(),

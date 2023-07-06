@@ -244,9 +244,8 @@ pub(crate) trait NativeScheduler: Send + Sync {
         // FIXME: logging
         // TODO: add to Accumulator
 
-        println!(
-            "time:{},task_id:{},result:{:?}",
-            start.elapsed(),
+        log::error!(
+            "task_id:{},result:{:?}",
             completed_event.task.get_task_id(),
             results
         );
