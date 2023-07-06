@@ -7,3 +7,5 @@
 
 # build
 /target/
+
+/docker/monitoring/grafana/data/
