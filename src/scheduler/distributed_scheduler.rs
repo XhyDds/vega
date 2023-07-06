@@ -444,15 +444,15 @@ impl DistributedScheduler {
 impl NativeScheduler for DistributedScheduler {
     async fn submit_task_iter<T: Data, U: Data, F>(
         task: TaskOption,
-        _id_in_job: usize,
+        id_in_job: usize,
         target_executor: SocketAddrV4,
         socket_addrs: Arc<Mutex<VecDeque<SocketAddrV4>>>,
         event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
-        let task_clone = task.clone();
-        let event_queues_clone = event_queues.clone();
+        // let task_clone = task.clone();
+        // let event_queues_clone = event_queues.clone();
         tokio::spawn(async move {
             let mut num_retries = 0;
             loop {
@@ -496,7 +496,7 @@ impl NativeScheduler for DistributedScheduler {
                         // receive results back
                         // 接收到result
                         DistributedScheduler::receive_results::<T, U, F, _>(
-                            event_queues_clone,
+                            event_queues,
                             reader,
                             task,
                             target_executor.port(),
@@ -519,6 +519,21 @@ impl NativeScheduler for DistributedScheduler {
                                                                                         // )
                                                                                         // .await;
                                                                                         //清除executor(?)
+                            let new_executor = socket_addrs.lock().pop_back().unwrap();
+                            socket_addrs.lock().push_front(new_executor);
+                            println!(
+                                "task_id:{},new executor:{}",
+                                task.get_task_id(),
+                                new_executor.to_string()
+                            );
+                            let target_executor = new_executor;
+                            let _ = DistributedScheduler::submit_task_iter::<T, U, F>(
+                                task,
+                                id_in_job,
+                                target_executor,
+                                socket_addrs,
+                                event_queues,
+                            );
                             panic!("executor @{} can not response", target_executor.port());
                         }
                         tokio::time::delay_for(Duration::from_millis(600)).await;
@@ -527,17 +542,17 @@ impl NativeScheduler for DistributedScheduler {
                     }
                 }
             }
-        })
-        .await
-        .unwrap_or_else(|_| {
-            DistributedScheduler::submit_task_iter::<T, U, F>(
-                task,
-                _id_in_job,
-                target_executor,
-                socket_addrs,
-                event_queues,
-            );
         });
+        // .await
+        // .unwrap_or_else(|_| {
+        //     DistributedScheduler::submit_task_iter::<T, U, F>(
+        //         task,
+        //         _id_in_job,
+        //         target_executor,
+        //         socket_addrs,
+        //         event_queues,
+        //     );
+        // });
     }
     /// 提交task
     fn submit_task<T: Data, U: Data, F>(
