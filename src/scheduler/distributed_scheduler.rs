@@ -456,7 +456,7 @@ impl NativeScheduler for DistributedScheduler {
             return;
         }
         log::debug!("inside submit task");
-        log::error!("submit task {}",task.get_task_id());
+        log::error!("submit task {}", task.get_task_id());
         let event_queues_clone = self.event_queues.clone();
         // let shuffle = self
         //     .stage_cache
