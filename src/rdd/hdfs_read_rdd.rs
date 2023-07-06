@@ -5,14 +5,14 @@ use std::sync::{Arc, Weak};
 use crate::context::Context;
 use crate::dependency::Dependency;
 use crate::error::Result;
-use crate::rdd::{Rdd, RddBase, RddVals};
-use crate::serializable_traits::{AnyData, Data};
-use crate::split::Split;
 use crate::hosts::Hosts;
+use crate::rdd::{Rdd, RddBase, RddVals};
+use crate::serializable_traits::AnyData;
+use crate::split::Split;
+use hdrs::Client;
 use parking_lot::Mutex;
 use serde::Deserialize;
-use serde_derive::{Serialize};
-use hdrs::Client;
+use serde_derive::Serialize;
 
 /// A collection of objects which can be sliced into partitions with a partitioning function.
 
@@ -46,11 +46,7 @@ impl HdfsReadRddSplit {
         let mut res = Vec::with_capacity(len);
         for path in data {
             let fs = Client::connect(self.nn.as_str()).unwrap();
-            let file = fs
-                .open_file()
-                .read(true)
-                .open(path.as_str())
-                .unwrap();
+            let file = fs.open_file().read(true).open(path.as_str()).unwrap();
             let mut content = vec![];
             let mut reader = BufReader::new(file);
             reader.read_to_end(&mut content).unwrap();
@@ -58,7 +54,7 @@ impl HdfsReadRddSplit {
         }
         println!("finished reading files");
         Box::new(res.into_iter())
-    } 
+    }
 }
 
 /// 结构体HdfsReadRddVals
@@ -102,8 +98,7 @@ impl Clone for HdfsReadRdd {
 /// HdfsReadRdd对象包含一个Mutex<String>和一个Arc<HdfsReadRddVals<T>>
 ///
 impl HdfsReadRdd {
-    pub fn new(context: Arc<Context>, path: String, num_slices: usize) -> Self
-    {
+    pub fn new(context: Arc<Context>, path: String, num_slices: usize) -> Self {
         let nn = match Hosts::get() {
             //namenode默认是master
             Ok(hosts) => {
@@ -146,19 +141,17 @@ impl HdfsReadRdd {
      * 消耗掉data中的元素，产生一堆内存中分区对象
      * 生成将data分成num_slices个分区
      */
-    fn slice(nn: &str, path: &str, num_slices: usize) -> Vec<Vec<String>>
-    {
-        let mut num_slices =  num_slices;
+    fn slice(nn: &str, path: &str, num_slices: usize) -> Vec<Vec<String>> {
+        let mut num_slices = num_slices;
         if num_slices < 1 {
             num_slices = 1;
-        } 
+        }
         let fs = Client::connect(nn).expect("cannot connect to namenode");
         let metadata = fs.metadata(path).expect("cannot get metadata");
         let is_file = metadata.is_file();
         if is_file {
             vec![vec![path.to_string()]]
-        }
-        else {
+        } else {
             let dir_entries = fs.read_dir(path).expect("cannot read dir").into_inner();
             if num_slices < dir_entries.len() {
                 num_slices = dir_entries.len();
@@ -254,9 +247,7 @@ impl Rdd for HdfsReadRdd {
         if let Some(s) = split.downcast_ref::<HdfsReadRddSplit>() {
             Ok(s.iterator())
         } else {
-            panic!(
-                "Got split object from different concrete type other than HdfsReadRddSplit"
-            )
+            panic!("Got split object from different concrete type other than HdfsReadRddSplit")
         }
     }
 }
