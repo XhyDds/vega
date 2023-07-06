@@ -378,6 +378,16 @@ impl LocalScheduler {
 #[async_trait::async_trait]
 impl NativeScheduler for LocalScheduler {
     /// Every single task is run in the local thread pool
+    async fn submit_task_iter<T: Data, U: Data, F>(
+        _task: TaskOption,
+        _id_in_job: usize,
+        _server_address: SocketAddrV4,
+        _socket_addrs: Arc<Mutex<VecDeque<SocketAddrV4>>>,
+        _event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
+    ) where
+        F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
+    {
+    }
     /// 提交task，在本地运行
     fn submit_task<T: Data, U: Data, F>(
         &self,

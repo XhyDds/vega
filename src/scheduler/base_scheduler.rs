@@ -16,6 +16,8 @@ use crate::serializable_traits::{Data, SerFunc};
 use crate::shuffle::ShuffleMapTask;
 use dashmap::DashMap;
 
+use parking_lot::Mutex;
+
 pub(crate) type EventQueue = Arc<DashMap<usize, VecDeque<CompletionEvent>>>;
 
 /// Functionality of the library built-in schedulers
@@ -468,7 +470,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                     TaskOption::ResultTask(Box::new(result_task)),
                     id_in_job,
                     executor,
-                )
+                );
             }
         } else {
             // 非finalstage
@@ -529,6 +531,14 @@ pub(crate) trait NativeScheduler: Send + Sync {
 
     // NOTE: 这里无标注的函数通过下方的macro_rules!宏实现
 
+    async fn submit_task_iter<T: Data, U: Data, F>(
+        task: TaskOption,
+        id_in_job: usize,
+        target_executor: SocketAddrV4,
+        socket_addrs: Arc<Mutex<VecDeque<SocketAddrV4>>>,
+        event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
+    ) where
+        F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U;
     /// 在distributed_scheduler和local_scheduler中实现
     fn submit_task<T: Data, U: Data, F>(
         &self,
