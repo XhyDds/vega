@@ -1,12 +1,3 @@
-# from pyspark import SparkContext
-
-# sc = SparkContext("local", "Simple App")
-# text_file = sc.textFile("file:///usr/local/spark/README.md")
-# counts = text_file.flatMap(lambda line: line.split(" ")) \
-#              .map(lambda word: (word, 1)) \
-#              .reduceByKey(lambda a, b: a + b)
-# counts.saveAsTextFile("file:///usr/local/spark/output")
-# print("hello")
 from operator import add
 import timeit
 import time
