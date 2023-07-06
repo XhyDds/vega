@@ -26,21 +26,20 @@ RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-3.3.5/hadoop-3.3.5
     rm hadoop-3.3.5.tar.gz
 RUN echo """ \
     export JAVA_HOME=/home/jdk1.8.0_371 \
-    export PATH=$JAVA_HOME/bin:$PATH \
+    export PATH=\$JAVA_HOME/bin:\$PATH \
     export HADOOP_HOME=/home/hadoop-3.3.5 \
-    export PATH=.:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$PATH \
-    """ >> /root/.bashrc; \
-    source /root/.bashrc; \
-    echo "export CLASSPATH=${HADOOP_HOME}/etc/hadoop:`find ${HADOOP_HOME}/share/hadoop/ | awk '{path=path":"$0}END{print path}'`">>/root/.bashrc; \
-    echo "export LD_LIBRARY_PATH='${HADOOP_HOME}/lib/native':$LD_LIBRARY_PATH" >> /root/.bashrc; \
-    source /root/.bashrc; \
-    mkdir ./.cargo; \
+    export PATH=.:\$HADOOP_HOME/bin:\$HADOOP_HOME/sbin:\$PATH \
+    export CLASSPATH=\${HADOOP_HOME}/etc/hadoop:\`find \${HADOOP_HOME}/share/hadoop/ | awk '{path=path"":""\$0}END{print path}'\` \
+    export LD_LIBRARY_PATH=\${JAVA_HOME}/jre/lib/amd64/server:\${HADOOP_HOME}/lib/native:\$LD_LIBRARY_PATH \
+    """ >> /root/.bashrc;
+# source /root/.bashrc; \
+RUN mkdir ./.cargo; \
     cp ./vega/docker/config ./.cargo/config; \
     set -e; cd ./vega; \
+    cp config_files/hosts.conf /root/ \
     # Build executables
-    cargo build --release --examples; \
-    # # cargo build --release --examples; \
-    cp config_files/hosts.conf /root/ 
+    cargo build --release --examples; 
+
 # # mkdir /home/release; \
 # # # Copy all examples binaries
 # # find ./target/release/examples -exec file {} \; \
