@@ -2,7 +2,8 @@ use std::time::Instant;
 use vega::*;
 mod benchmark;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let sc: std::sync::Arc<Context> = Context::new()?;
 
     tokio::spawn(monitor::metrics::add_metric());
