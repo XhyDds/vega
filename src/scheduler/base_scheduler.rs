@@ -407,7 +407,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
             );
             if missing.is_empty() {
                 // 没有缺失，直接提交
-                self.submit_missing_tasks(stage.clone(), jt.clone()).await?;
+                self.submit_missing_tasks(stage.clone(), jt.clone()).await?; //*测试Pi时，本函数所有开销在此处
                 jt.running.lock().await.insert(stage);
             } else {
                 // 有缺失，将parent提交之后再提交

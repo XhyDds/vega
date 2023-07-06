@@ -218,7 +218,6 @@ impl LocalScheduler {
         L: JobListener,
     {
         // TODO: update cache
-
         if allow_local {
             // 允许在本地运行，使用local_execution
             if let Some(result) = LocalScheduler::local_execution(jt.clone())? {
@@ -231,9 +230,8 @@ impl LocalScheduler {
 
         let mut results: Vec<Option<U>> = (0..jt.num_output_parts).map(|_| None).collect();
         let mut fetch_failure_duration = Duration::new(0, 0);
-
         self.submit_stage(jt.final_stage.clone(), jt.clone())
-            .await?;
+            .await?; //*对于蒙特卡洛计算Pi，2/3的时间用于这一条语句
         log::debug!(
             "pending stages and tasks: {:?}",
             jt.pending_tasks
@@ -283,6 +281,7 @@ impl LocalScheduler {
                 }
             }
         }
+        //*对于蒙特卡洛计算Pi，1/3时间用于这个while循环体
 
         // 如果有失败的task，且失败时间超过resubmit_timeout，重新提交
         // NOTE: 是否需要再走一遍while的流程？
@@ -317,7 +316,7 @@ impl LocalScheduler {
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
-        let des_task: TaskOption = bincode::deserialize(&task).unwrap();
+        let des_task: TaskOption = bincode::deserialize(&task).unwrap(); //*反序列化task花了Pi计算时间的一半
         let result = des_task.run(attempt_id);
         match des_task {
             TaskOption::ResultTask(tsk) => {
