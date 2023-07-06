@@ -35,7 +35,7 @@ fn main() -> Result<()> {
             })) as Box<dyn Iterator<Item = _>>
         }));
     let res = lines.collect().unwrap();
-    println!("{:?}", H.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/1.txt", true));
+    println!("{:?}", H.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/2.txt", true));
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
     Ok(())
