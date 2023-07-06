@@ -12,7 +12,7 @@ use vega::*;
 pub fn calc_e(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>) {
     use num_bigfloat::ZERO;
     let col = sc.make_rdd(
-        (0..param.unwrap_or(10000)).collect::<Vec<_>>(),
+        0..param.unwrap_or(10000),
         num_slices.unwrap_or(3),
     );
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
