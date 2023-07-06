@@ -1,11 +1,9 @@
-use dashmap::Map;
-use hdrs::{Client, OpenOptions};
-use crate::fs::path;
-use crate::io::*;
 use crate::error::{Error, Result};
-use crate::*;
+use crate::io::*;
 use crate::rdd::MapperRdd;
-use std::io::{self, Read};
+use crate::*;
+use hdrs::Client;
+use std::io::Read;
 
 pub struct HdfsIO {
     nn: String,
@@ -17,17 +15,12 @@ impl HdfsIO {
         let nn = nn + ":9000";
         let fs = Client::connect(nn.as_str());
         let fs = match fs {
-            Ok(fs) => {
-                fs
-            }
-            Err(e) => {
+            Ok(fs) => fs,
+            Err(_) => {
                 return Err(Error::HdfsConnect(nn));
             }
         };
-        Ok(HdfsIO {
-            nn,
-            fs,
-        })
+        Ok(HdfsIO { nn, fs })
     }
 
     pub fn read_to_vec(&mut self, path: &str) -> Result<Vec<u8>> {
@@ -35,10 +28,8 @@ impl HdfsIO {
         let mut oo = self.fs.open_file();
         let file = oo.read(true).open(path);
         let mut file = match file {
-            Ok(file) => {
-                file
-            }
-            Err(e) => {
+            Ok(file) => file,
+            Err(_) => {
                 return Err(Error::HdfsFileOpen(self.nn.to_string()));
             }
         };
@@ -52,7 +43,13 @@ impl HdfsIO {
         Ok(buf)
     }
 
-    pub fn read_to_rdd<U, F>(&mut self, path: &str, context: &Arc<Context>, num_slices: usize, f: F) -> Result<SerArc<dyn Rdd<Item = U>>> 
+    pub fn read_to_rdd<U, F>(
+        &mut self,
+        path: &str,
+        context: &Arc<Context>,
+        num_slices: usize,
+        f: F,
+    ) -> Result<SerArc<dyn Rdd<Item = U>>>
     where
         F: SerFunc(Vec<u8>) -> Vec<U>,
         U: Data,
@@ -61,9 +58,7 @@ impl HdfsIO {
         let mut oo = self.fs.open_file();
         let file = oo.read(true).open(path);
         let mut file = match file {
-            Ok(file) => {
-                file
-            }
+            Ok(file) => file,
             Err(_) => {
                 return Err(Error::HdfsFileOpen(self.nn.to_string()));
             }
@@ -84,9 +79,7 @@ impl HdfsIO {
         let mut vec = Vec::<Vec<u8>>::new();
         let dir = self.fs.read_dir(path);
         let dir = match dir {
-            Ok(dir) => {
-                dir
-            }
+            Ok(dir) => dir,
             Err(_) => {
                 return Err(Error::HdfsDirOpen(self.nn.to_string()));
             }
@@ -96,9 +89,7 @@ impl HdfsIO {
             let mut oo = self.fs.open_file();
             let file = oo.read(true).open(entry.path());
             let mut file = match file {
-                Ok(file) => {
-                    file
-                }
+                Ok(file) => file,
                 Err(_) => {
                     return Err(Error::HdfsFileOpen(self.nn.to_string()));
                 }
@@ -116,7 +107,13 @@ impl HdfsIO {
         Ok(vec)
     }
 
-    pub fn read_dir_to_rdd<U, F>(&mut self, path: &str, context: &Arc<Context>, num_slices: usize, f: F) -> Result<SerArc<dyn Rdd<Item = Vec<U>>>>
+    pub fn read_dir_to_rdd<U, F>(
+        &mut self,
+        path: &str,
+        context: &Arc<Context>,
+        num_slices: usize,
+        f: F,
+    ) -> Result<SerArc<dyn Rdd<Item = Vec<U>>>>
     where
         F: SerFunc(Vec<u8>) -> Vec<U>,
         U: Data,
@@ -124,9 +121,7 @@ impl HdfsIO {
         let mut vec = Vec::<Vec<u8>>::new();
         let dir = self.fs.read_dir(path);
         let dir = match dir {
-            Ok(dir) => {
-                dir
-            }
+            Ok(dir) => dir,
             Err(_) => {
                 return Err(Error::HdfsDirOpen(self.nn.to_string()));
             }
@@ -136,9 +131,7 @@ impl HdfsIO {
             let mut oo = self.fs.open_file();
             let file = oo.read(true).open(entry.path());
             let mut file = match file {
-                Ok(file) => {
-                    file
-                }
+                Ok(file) => file,
                 Err(_) => {
                     return Err(Error::HdfsFileOpen(self.nn.to_string()));
                 }
@@ -159,5 +152,4 @@ impl HdfsIO {
 
         Ok(SerArc::new(rdd))
     }
-
 }
