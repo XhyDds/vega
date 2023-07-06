@@ -249,7 +249,7 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffleDependencyTrait for ShuffleDe
             );
             if env::Configuration::get().is_sort_shuffle {
                 if let Some(mut old_v) = env::SHUFFLE_CACHE.get_mut(&(self.shuffle_id, i)) {
-                    let mut new_v = &mut old_v;
+                    let new_v = &mut old_v;
                     (*new_v).push(ser_bytes);
                 } else {
                     env::SHUFFLE_CACHE.insert((self.shuffle_id, i), vec![ser_bytes]);

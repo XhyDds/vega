@@ -15,7 +15,6 @@ use crate::serializable_traits::{AnyData, Data, SerFunc};
 use crate::split::Split;
 use crate::Fn;
 use log::debug;
-use rand::prelude::*;
 use serde_derive::{Deserialize, Serialize};
 
 pub struct HdfsReaderConfig {
@@ -290,7 +289,6 @@ impl<T: Data> HdfsReader<T> {
         let mut partitions = Vec::with_capacity(num_partitions as usize);
         let mut partition = Vec::with_capacity(0); //这样分配？
         let mut curr_part_size = 0_u64;
-        let mut rng = rand::thread_rng(); //RNG牛B
 
         for (size, file) in files.into_iter() {
             if partitions.len() as u64 == num_partitions - 1 {
@@ -301,7 +299,7 @@ impl<T: Data> HdfsReader<T> {
 
             let new_part_size = curr_part_size + size;
             //let larger_than_mean = rng.gen::<bool>(); //随机生成？？
-            let larger_than_mean = {size > file_size_mean};
+            let larger_than_mean = { size > file_size_mean };
             if (larger_than_mean && new_part_size < high_part_size_bound)//正常情况
                 || (!larger_than_mean && new_part_size <= avg_partition_size)
             {
