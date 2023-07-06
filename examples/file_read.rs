@@ -1,11 +1,11 @@
 use std::time::Instant;
 use std::{env, io::Write};
-use vega::io::*;
+use vega::io::HdfsReaderConfig;
 use vega::*;
 fn main() -> Result<()> {
     //std::env::set_current_dir("/home/lml");
-    std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
-    std::env::set_var("HADOOP_HOME", "/home/lml/hadoop-3.3.5");
+    // std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
+    // std::env::set_var("HADOOP_HOME", "/home/lml/hadoop-3.3.5");
     let start = Instant::now();
     let mut file = std::fs::File::create("/tmp/env1.txt").expect("create failed");
     for (key, value) in env::vars() {
@@ -21,9 +21,13 @@ fn main() -> Result<()> {
             .map(|s| s.to_string())
             .collect::<Vec<_>>()
     });
-    let lines = context.read_source(LocalFsReaderConfig::new("/home/lml/1.csv"), deserializer);
+    let lines = context.read_source(HdfsReaderConfig::new("/csv"), deserializer);
+    // let H = HdfsIO::new("192.168.179.129".to_string());
+    // let mut H = H.unwrap();
+    // let lines = H.read_dir_to_rdd("/csv_folder", &context, 32, deserializer).unwrap();
     println!("successfully read source");
     let line = lines.flat_map(Fn!(|lines: Vec<String>| {
+        println!("flat map");
         Box::new(lines.into_iter().map(|line| {
             let line = line.split(',').collect::<Vec<_>>();
             (

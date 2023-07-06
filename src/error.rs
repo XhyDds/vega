@@ -93,6 +93,15 @@ pub enum Error {
     #[error("failed to connect to hdfs namenode: {0}")]
     HdfsConnect(String),
 
+    #[error("failed to open hdfs file on namenode: {0}")]
+    HdfsFileOpen(String),
+
+    #[error("failed to open hdfs dir on namenode: {0}")]
+    HdfsDirOpen(String),
+
+    #[error("failed to read hdfs file from namenode: {0}")]
+    HdfsRead(String),
+
     #[error("failed reading from input source")]
     InputRead(#[source] std::io::Error),
 
