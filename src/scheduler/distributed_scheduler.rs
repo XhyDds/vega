@@ -494,6 +494,7 @@ impl NativeScheduler for DistributedScheduler {
                             let mut message = capnp::message::Builder::new_default();
                             let mut task_data = message.init_root::<serialized_data::Builder>();
                             task_data.set_msg(&task_bytes);
+                            println!("task bytes len: {}", task_bytes.len());
                             capnp_serialize::write_message(writer, message)
                                 .await
                                 .map_err(Error::CapnpDeserialization)

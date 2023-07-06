@@ -385,7 +385,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 }
             }
         }
-        log::error!("task_id:{},result:{:?}", task_id, results);
+        //log::error!("task_id:{},result:{:?}", task_id, results);
         Ok(())
     }
 
