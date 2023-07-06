@@ -106,6 +106,17 @@ where
     }
 }
 
+impl Clone for TaskOption {
+    fn clone(&self) -> Self {
+        match self {
+            TaskOption::ResultTask(tsk) => TaskOption::ResultTask(tsk.clone()),
+            TaskOption::ShuffleMapTask(tsk) => {
+                TaskOption::ShuffleMapTask(Box::new(*tsk.clone()) as Box<dyn TaskBox>)
+            }
+        }
+    }
+}
+
 impl From<ShuffleMapTask> for TaskOption {
     fn from(t: ShuffleMapTask) -> Self {
         TaskOption::ResultTask(Box::new(t))

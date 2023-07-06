@@ -442,32 +442,17 @@ impl DistributedScheduler {
 
 #[async_trait::async_trait]
 impl NativeScheduler for DistributedScheduler {
-    /// 提交task
-    fn submit_task<T: Data, U: Data, F>(
-        &self,
+    async fn submit_task_iter<T: Data, U: Data, F>(
         task: TaskOption,
-        id_in_job: usize,
+        _id_in_job: usize,
         target_executor: SocketAddrV4,
+        socket_addrs: Arc<Mutex<VecDeque<SocketAddrV4>>>,
+        event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
-        if !env::Configuration::get().is_driver {
-            // 如果不是主机，则不需要调度
-            return;
-        }
-        log::debug!("inside submit task");
-        log::error!("submit task {}", task.get_task_id());
-        let event_queues_clone = self.event_queues.clone();
-        // let shuffle = self
-        //     .stage_cache
-        //     .get(&task.get_stage_id())
-        //     .unwrap()
-        //     .clone()
-        //     .shuffle_dependency
-        //     .clone()
-        //     .ok_or_else(|| Error::Other)
-        //     .expect("shuffle dependency not found");
-        // let shuffle_id = shuffle.get_shuffle_id();
+        let task_clone = task.clone();
+        let event_queues_clone = event_queues.clone();
         tokio::spawn(async move {
             let mut num_retries = 0;
             loop {
@@ -526,14 +511,14 @@ impl NativeScheduler for DistributedScheduler {
                             //重新发送
                             // let shuffle_id = 0;
                             log::error!("{} connection failed:\n", task.get_task_id()); //
-                            DistributedScheduler::task_failed::<T, U, F>(
-                                event_queues_clone,
-                                task,
-                                target_executor,
-                                id_in_job,
-                            )
-                            .await;
-                            //清除executor(?)
+                                                                                        // DistributedScheduler::task_failed::<T, U, F>(
+                                                                                        //     event_queues_clone,
+                                                                                        //     task,
+                                                                                        //     target_executor,
+                                                                                        //     id_in_job,
+                                                                                        // )
+                                                                                        // .await;
+                                                                                        //清除executor(?)
                             panic!("executor @{} can not response", target_executor.port());
                         }
                         tokio::time::delay_for(Duration::from_millis(600)).await;
@@ -542,6 +527,46 @@ impl NativeScheduler for DistributedScheduler {
                     }
                 }
             }
+        })
+        .await
+        .unwrap_or_else(|_| {
+            DistributedScheduler::submit_task_iter::<T, U, F>(
+                task,
+                _id_in_job,
+                target_executor,
+                socket_addrs,
+                event_queues,
+            );
+        });
+    }
+    /// 提交task
+    fn submit_task<T: Data, U: Data, F>(
+        &self,
+        task: TaskOption,
+        _id_in_job: usize,
+        target_executor: SocketAddrV4,
+    ) where
+        F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
+    {
+        if !env::Configuration::get().is_driver {
+            // 如果不是主机，则不需要调度
+            return;
+        }
+        log::debug!("inside submit task");
+        log::error!("submit task {}", task.get_task_id());
+        let event_queues_clone = self.event_queues.clone();
+        let socket_addrs = self.server_uris.clone();
+        // let socket_addrs = self.server_uris.lock().pop_back().unwrap();
+        // self.server_uris.lock().push_front(socket_addrs);
+        // println!("{}", socket_addrs.to_string());
+        tokio::spawn(async move {
+            DistributedScheduler::submit_task_iter::<T, U, F>(
+                task,
+                _id_in_job,
+                target_executor,
+                socket_addrs,
+                event_queues_clone,
+            )
         });
     }
 
