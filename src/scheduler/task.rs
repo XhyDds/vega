@@ -83,18 +83,9 @@ pub(crate) trait Task: TaskBase + Send + Sync + Downcast {
 
 impl_downcast!(Task);
 
-pub(crate) trait TaskBox: Task + Serialize + Deserialize + 'static + Downcast {
-    // fn clone_box(&self) -> Box<dyn TaskBox>;
-}
+pub(crate) trait TaskBox: Task + Serialize + Deserialize + 'static + Downcast {}
 
-impl<K> TaskBox for K
-where
-    K: Task + Serialize + Deserialize + 'static,
-{
-    // fn clone_box(&self) -> Box<dyn TaskBox> {
-    //     Box::new(self.clone())
-    // }
-}
+impl<K> TaskBox for K where K: Task + Serialize + Deserialize + 'static {}
 
 impl_downcast!(TaskBox);
 
@@ -121,6 +112,7 @@ impl From<ShuffleMapTask> for TaskOption {
     }
 }
 
+// can't run successfully,need to be fixed
 // impl Clone for TaskOption {
 //     fn clone(&self) -> Self {
 //         match self {

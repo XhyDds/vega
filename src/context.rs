@@ -308,6 +308,8 @@ impl Context {
         for slave in &hosts::Hosts::get()?.slaves {
             let address = &slave.ip;
             let key_path = &slave.key;
+            let java_home = &slave.java_home;
+            let hadoop_home = &slave.hadoop_home;
             log::debug!("deploying executor at address {:?}", address);
             let address_ip: Ipv4Addr = address
                 .split('@')
@@ -316,13 +318,44 @@ impl Context {
                 .parse()
                 .map_err(|x| Error::ParseHostAddress(format!("{}", x)))?;
             address_map.push(SocketAddrV4::new(address_ip, port));
-            println!("{}", key_path);
+            println!(
+                "key_path:{},java_path:{},hadoop_path:{}",
+                key_path, java_home, hadoop_home
+            );
 
             let work_dir = format!(
                 "{}{}",
                 "/home/",
                 slave.ip.as_str().split('@').nth(0).unwrap()
             );
+            //配置hdfs参数
+            Command::new("ssh")
+                .args(&[
+                    "-i",
+                    key_path,
+                    address,
+                    "export",
+                    format!("JAVA_HOME={}", java_home).as_str(),
+                ])
+                .output()
+                .map_err(|e| Error::CommandOutput {
+                    source: e,
+                    command: "ssh export".into(),
+                })?;
+
+            Command::new("ssh")
+                .args(&[
+                    "-i",
+                    key_path,
+                    address,
+                    "export",
+                    format!("HADOOP_HOME={}", hadoop_home).as_str(),
+                ])
+                .output()
+                .map_err(|e| Error::CommandOutput {
+                    source: e,
+                    command: "ssh export".into(),
+                })?;
 
             Command::new("ssh")
                 .args(&["-i", key_path, address, "mkdir", &job_work_dir_str])
