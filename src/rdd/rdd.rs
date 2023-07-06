@@ -49,7 +49,9 @@ mod zip_rdd;
 pub use zip_rdd::*;
 mod union_rdd;
 pub use union_rdd::*;
+#[cfg(feature = "hdrs_valid")]
 mod hdfs_read_rdd;
+#[cfg(feature = "hdrs_valid")]
 pub use hdfs_read_rdd::*;
 // Values which are needed for all RDDs
 #[derive(Serialize, Deserialize)]
