@@ -49,10 +49,18 @@ impl<T: Data> ParallelCollectionSplit<T> {
         }
     }
     // Lot of unnecessary cloning is there. Have to refactor for better performance
-    fn iterator(&self) -> Box<dyn Iterator<Item = T>> {
-        let data = self.values.clone();
-        let len = data.len();
-        Box::new((0..len).map(move |i| data[i].clone()))
+    // fn iterator(&self) -> Box<dyn Iterator<Item = T>> {
+    //     let data = self.values.clone();
+    //     let len = data.len();
+    //     Box::new((0..len).map(move |i| data[i].clone()))
+    // }
+
+
+    fn iterator(&self) -> Box<dyn Iterator<Item = T>> 
+    {
+        //这里使用to_owned会产生clone，但是相较于原版减少一次
+        // println!("new iter");
+        Box::new(self.values[0..].to_owned().into_iter())
     }
 }
 

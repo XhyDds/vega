@@ -10,7 +10,7 @@ use vega::*;
 #[allow(dead_code)]
 pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>) {
     let start = Instant::now();
-    let param = param.unwrap_or(1000000);
+    let param = param.unwrap_or(100000);
     let num_slices = num_slices.unwrap_or(2);
     let col = sc.make_rdd(0..param, num_slices);
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.

@@ -244,12 +244,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         // FIXME: logging
         // TODO: add to Accumulator
 
-        println!(
-            "time:{},task_id:{},result:{:?}",
-            start.elapsed(),
-            completed_event.task.get_task_id(),
-            results
-        );
+
 
         let result_type = completed_event
             .task
