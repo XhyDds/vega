@@ -3,8 +3,8 @@ use std::{env, io::Write};
 use vega::io::HdfsIO;
 use vega::*;
 fn main() -> Result<()> {
-    std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
-    std::env::set_var("HADOOP_HOME", "/home/lml/hadoop-3.3.5");
+    // std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
+    // std::env::set_var("HADOOP_HOME", "/home/lml/hadoop-3.3.5");
     let start = Instant::now();
     let mut file = std::fs::File::create("/tmp/env1.txt").expect("create failed");
     for (key, value) in env::vars() {
