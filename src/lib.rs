@@ -40,6 +40,7 @@ mod error;
 pub mod fs;
 mod hosts;
 mod utils;
+pub mod monitor;
 
 // Import global external types and macros:
 pub use serde_closure::Fn;

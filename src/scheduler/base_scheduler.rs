@@ -16,6 +16,8 @@ use crate::serializable_traits::{Data, SerFunc};
 use crate::shuffle::ShuffleMapTask;
 use dashmap::DashMap;
 
+use parking_lot::Mutex;
+
 pub(crate) type EventQueue = Arc<DashMap<usize, VecDeque<CompletionEvent>>>;
 
 /// Functionality of the library built-in schedulers
@@ -206,7 +208,6 @@ pub(crate) trait NativeScheduler: Send + Sync {
         let failed_stage = self.fetch_from_stage_cache(stage_id);
 
         println!("failed stage: {:?}", failed_stage.output_locs);
-        // println!("failed stage: {:?}", failed_stage);
         // let shuffle = failed_stage
         //     .shuffle_dependency
         //     .clone()
@@ -217,11 +218,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
         // 从running中移除失败的stage，并加入到failed中
         jt.running.lock().await.remove(&failed_stage);
         jt.failed.lock().await.insert(failed_stage);
-        // FIXME: logging
-        // 函数出错，FIXYOU.
-        println!("here");
         self.remove_output_loc_from_stage(shuffle_id, map_id, &server_uri);
-        println!("here2");
         self.unregister_map_output(shuffle_id, map_id, server_uri);
         jt.failed
             .lock()
@@ -243,8 +240,6 @@ pub(crate) trait NativeScheduler: Send + Sync {
     {
         // FIXME: logging
         // TODO: add to Accumulator
-
-
 
         let result_type = completed_event
             .task
@@ -386,6 +381,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 }
             }
         }
+        log::debug!("task_id:{},result:{:?}", task_id, results);
         Ok(())
     }
 
@@ -469,7 +465,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                     TaskOption::ResultTask(Box::new(result_task)),
                     id_in_job,
                     executor,
-                )
+                );
             }
         } else {
             // 非finalstage
@@ -530,6 +526,14 @@ pub(crate) trait NativeScheduler: Send + Sync {
 
     // NOTE: 这里无标注的函数通过下方的macro_rules!宏实现
 
+    async fn submit_task_iter<T: Data, U: Data, F>(
+        task: TaskOption,
+        id_in_job: usize,
+        target_executor: SocketAddrV4,
+        socket_addrs: Arc<Mutex<VecDeque<SocketAddrV4>>>,
+        event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
+    ) where
+        F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U;
     /// 在distributed_scheduler和local_scheduler中实现
     fn submit_task<T: Data, U: Data, F>(
         &self,

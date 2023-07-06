@@ -17,8 +17,8 @@ pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>)
     let coordinate_iter = col.map(Fn!(|_| {
         let mut rng = rand::thread_rng();
         let pair = (
-            rng.gen_range(-100.0, 100.0) as f64,
-            rng.gen_range(-100.0, 100.0) as f64,
+            rng.gen_range(-100.0f64, 100.0f64) as f64,
+            rng.gen_range(-100.0f64, 100.0f64) as f64,
         );
         if pair.0 * pair.0 + pair.1 * pair.1 <= 100.0 * 100.0 {
             1
@@ -27,7 +27,7 @@ pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>)
         }
     }));
     let res = coordinate_iter.fold(0, Fn!(|acc, i| acc + i)).unwrap();
-    println!("result: {:?}", 1.0 * res as f64 * 4.0 / param as f64);
+    println!("result: {:?}", (res as f64) * 4.0 / (param as f64));
 
     // benchmark::pi::calc_pi(sc,Some(1000000),Some(2));
     let end = start.elapsed();

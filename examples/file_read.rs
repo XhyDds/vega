@@ -1,7 +1,7 @@
 use std::time::Instant;
 use std::{env, io::Write};
-use vega::io::{HdfsReaderConfig, HdfsIO};
 use vega::*;
+use vega::io::HdfsIO;
 fn main() -> Result<()> {
     std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
     std::env::set_var("HADOOP_HOME", "/home/lml/hadoop-3.3.5");
@@ -20,42 +20,22 @@ fn main() -> Result<()> {
             .map(|s| s.to_string())
             .collect::<Vec<_>>()
     });
+    let mut H = HdfsIO::new("192.168.179.129".to_string()).unwrap();
+    let lines = H.read_to_rdd("/csv_folder", &context, 2, deserializer).unwrap();
     //let lines = context.read_source(HdfsReaderConfig::new("/csv"), deserializer);
-    let H = HdfsIO::new("192.168.179.129".to_string());
-    let mut H = H.unwrap();
-    let lines = H.read_dir_to_rdd("/csv_folder", &context, 1, deserializer).unwrap();
-    println!("successfully read source");
-    println!("{:?}",start.elapsed());
-    let a = lines.collect().unwrap();
-    println!("a");
-    println!("{:?}",start.elapsed());
-    let lines = context.make_rdd(a, 2);
-    println!("successfully make rdd");
-    println!("{:?}",start.elapsed());
-    let line = lines.flat_map(Fn!(|lines: Vec<String>| {
-        Box::new(lines.into_iter().map(|line| {
-            let line = line.split(',').collect::<Vec<_>>();
-            (
-                (line[0].to_string()),
-                (line[7].parse::<f64>().unwrap(), 1.0),
-            )
-        })) as Box<dyn Iterator<Item = _>>
-    }));
-    
-    // let line = lines.map(Fn!(|line: String| {
-    //     let line = line.split(',').collect::<Vec<_>>();
-    //     (
-    //         (line[0].to_string()),
-    //         (line[7].parse::<f64>().unwrap(), 1.0),
-    //     )
-    // }));
-    println!("successfully map");
-    println!("{:?}",start.elapsed());
-    //let sum = line.reduce_by_key(Fn!(|((vl, cl), (vr, cr))| (vl + vr, cl + cr)), 1);
-    //let avg = sum.map(Fn!(|(k, (v, c))| (k, v as f64 / c)));
-    //let res = avg.collect().unwrap();
-    let res = line.collect().unwrap();
-    println!("result: {:?}", res[0]);
+    //let lines = HdfsReadRdd::new(context.clone(), "/csv".to_string(), 2);
+    //let lines = lines.map(deserializer);
+    let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
+            Box::new(lines.into_iter().map(|line| {
+                let line = line.split(',').collect::<Vec<_>>();
+                (
+                    (line[0].to_string()),
+                    (line[7].parse::<f64>().unwrap(), 1.0),
+                )
+            })) as Box<dyn Iterator<Item = _>>
+        }));
+    let res = lines.collect().unwrap();
+    println!("{:?}", H.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/1.txt", true));
     let duration = start.elapsed();
     println!("Time elapsed is: {:?}", duration);
     Ok(())

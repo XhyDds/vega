@@ -272,7 +272,7 @@ impl DistributedScheduler {
                             .await?;
                     }
                     FetchFailed(failed_vals) => {
-                        log::error!("{}:fetch failed", evt.task.get_task_id()); //FIXME
+                        log::error!("{}:fetch failed", evt.task.get_task_id());
                         self.on_event_failure(jt.clone(), failed_vals, evt.task.get_stage_id())
                             .await;
                         fetch_failure_duration = start.elapsed();
@@ -442,39 +442,25 @@ impl DistributedScheduler {
 
 #[async_trait::async_trait]
 impl NativeScheduler for DistributedScheduler {
-    /// 提交task
-    fn submit_task<T: Data, U: Data, F>(
-        &self,
+    async fn submit_task_iter<T: Data, U: Data, F>(
         task: TaskOption,
         id_in_job: usize,
         target_executor: SocketAddrV4,
+        socket_addrs: Arc<Mutex<VecDeque<SocketAddrV4>>>,
+        event_queues: Arc<DashMap<usize, VecDeque<CompletionEvent>>>,
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
-        if !env::Configuration::get().is_driver {
-            // 如果不是主机，则不需要调度
-            return;
-        }
-        log::debug!("inside submit task");
-        let event_queues_clone = self.event_queues.clone();
-        // let shuffle = self
-        //     .stage_cache
-        //     .get(&task.get_stage_id())
-        //     .unwrap()
-        //     .clone()
-        //     .shuffle_dependency
-        //     .clone()
-        //     .ok_or_else(|| Error::Other)
-        //     .expect("shuffle dependency not found");
-        // let shuffle_id = shuffle.get_shuffle_id();
         tokio::spawn(async move {
             let mut num_retries = 0;
             loop {
                 match TcpStream::connect(&target_executor).await {
                     Ok(mut stream) => {
+                        log::debug!("connected to exec @{}", target_executor.port());
                         let (reader, writer) = stream.split();
                         let reader = reader.compat();
                         let writer = writer.compat_write();
+                        log::debug!("serialize task:exec @{}", target_executor.port());
                         let task_bytes = bincode::serialize(&task).unwrap();
                         log::debug!(
                             "sending task #{} of {} bytes to exec @{},",
@@ -483,12 +469,15 @@ impl NativeScheduler for DistributedScheduler {
                             target_executor.port(),
                         );
 
+                        log::debug!("sending message to exec @{}", target_executor.port());
+
                         // TODO: 可考虑remove blocking call when possible
                         futures::executor::block_on(async {
                             // 发送端
                             let mut message = capnp::message::Builder::new_default();
                             let mut task_data = message.init_root::<serialized_data::Builder>();
                             task_data.set_msg(&task_bytes);
+                            println!("task bytes len: {}", task_bytes.len());
                             capnp_serialize::write_message(writer, message)
                                 .await
                                 .map_err(Error::CapnpDeserialization)
@@ -496,7 +485,7 @@ impl NativeScheduler for DistributedScheduler {
                         });
 
                         log::debug!("sent data to exec @{}", target_executor.port());
-                        println!(
+                        log::debug!(
                             "sent task {} to exec @{} ({})",
                             task.get_task_id(),
                             target_executor.port(),
@@ -506,7 +495,7 @@ impl NativeScheduler for DistributedScheduler {
                         // receive results back
                         // 接收到result
                         DistributedScheduler::receive_results::<T, U, F, _>(
-                            event_queues_clone,
+                            event_queues,
                             reader,
                             task,
                             target_executor.port(),
@@ -519,24 +508,60 @@ impl NativeScheduler for DistributedScheduler {
                         // 五次后不再尝试发送，将任务标记为failed，等待发送给其他executor
                         if num_retries > 5 {
                             //重新发送
-                            // let shuffle_id = 0;
-                            log::error!("{} connection failed:\n", task.get_task_id()); //
-                            DistributedScheduler::task_failed::<T, U, F>(
-                                event_queues_clone,
+                            log::error!("{} connection failed:\n", task.get_task_id());
+                            let new_executor = socket_addrs.lock().pop_back().unwrap();
+                            socket_addrs.lock().push_front(new_executor);
+                            log::error!(
+                                "Fault Tolerance: task_id:{}, old executor:{}, new executor:{}",
+                                task.get_task_id(),
+                                target_executor.to_string(),
+                                new_executor.to_string()
+                            );
+                            let target_executor = new_executor;
+                            DistributedScheduler::submit_task_iter::<T, U, F>(
                                 task,
-                                target_executor,
                                 id_in_job,
+                                target_executor,
+                                socket_addrs,
+                                event_queues,
                             )
                             .await;
-                            //清除executor(?)
                             panic!("executor @{} can not response", target_executor.port());
                         }
-                        tokio::time::delay_for(Duration::from_millis(600)).await;
+                        tokio::time::delay_for(Duration::from_millis(200)).await;
                         num_retries += 1;
                         continue;
                     }
                 }
             }
+        });
+    }
+    /// 提交task
+    fn submit_task<T: Data, U: Data, F>(
+        &self,
+        task: TaskOption,
+        _id_in_job: usize,
+        target_executor: SocketAddrV4,
+    ) where
+        F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
+    {
+        if !env::Configuration::get().is_driver {
+            // 如果不是主机，则不需要调度
+            return;
+        }
+        log::debug!("inside submit task");
+        log::debug!("submit task {}", task.get_task_id());
+        let event_queues_clone = self.event_queues.clone();
+        let socket_addrs = self.server_uris.clone();
+        tokio::spawn(async move {
+            DistributedScheduler::submit_task_iter::<T, U, F>(
+                task,
+                _id_in_job,
+                target_executor,
+                socket_addrs,
+                event_queues_clone,
+            )
+            .await;
         });
     }
 

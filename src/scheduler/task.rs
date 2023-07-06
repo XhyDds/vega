@@ -112,6 +112,16 @@ impl From<ShuffleMapTask> for TaskOption {
     }
 }
 
+// can't run successfully,need to be fixed
+// impl Clone for TaskOption {
+//     fn clone(&self) -> Self {
+//         match self {
+//             TaskOption::ResultTask(tsk) => TaskOption::ResultTask(tsk.as_ref().clone_box()),
+//             TaskOption::ShuffleMapTask(tsk) => TaskOption::ShuffleMapTask(*(tsk.clone())),
+//         }
+//     }
+// }
+
 #[derive(Serialize, Deserialize)]
 pub(crate) enum TaskResult {
     ResultTask(SerBox<dyn AnyData>),

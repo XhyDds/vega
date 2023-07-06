@@ -4,8 +4,9 @@ use serde_derive::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
 /** Aggregator for shuffle tasks.
-* 这个Aggregator主要就是拿来装三个函数，用于处理Vec：
-* 一个初始化函数，一个append函数，和一个拼接两Vec的函数
+* 这个Aggregator主要就是拿来装三个函数，用于处理reduce的情况
+* 默认的函数用于处理Vec：一个初始化函数，一个append函数，和一个拼接两Vec的函数
+* 注意！除了默认实现，在reduce_by_key时当然还有其它种类的聚合函数！
 */
 #[derive(Serialize, Deserialize)]
 pub struct Aggregator<K: Data, V: Data, C: Data> {
@@ -35,7 +36,7 @@ impl<K: Data, V: Data, C: Data> Aggregator<K, V, C> {
 }
 
 impl<K: Data, V: Data> Default for Aggregator<K, V, Vec<V>> {
-    fn default() -> Self {
+    fn default() -> Self {//注意！这只是默认实现，在reduce_by_key时当然还有其它种类的聚合函数！
         let merge_value = Box::new(Fn!(|mv: (Vec<V>, V)| {
             let (mut buf, v) = mv;
             buf.push(v);
