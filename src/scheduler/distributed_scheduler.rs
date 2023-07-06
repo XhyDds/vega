@@ -453,6 +453,7 @@ impl NativeScheduler for DistributedScheduler {
     {
         // let task_clone = task.clone();
         // let event_queues_clone = event_queues.clone();
+        println!("here2");
         tokio::spawn(async move {
             let mut num_retries = 0;
             loop {
@@ -528,13 +529,13 @@ impl NativeScheduler for DistributedScheduler {
                                 new_executor.to_string()
                             );
                             let target_executor = new_executor;
-                            let _ = DistributedScheduler::submit_task_iter::<T, U, F>(
+                            DistributedScheduler::submit_task_iter::<T, U, F>(
                                 task,
                                 id_in_job,
                                 target_executor,
                                 socket_addrs,
                                 event_queues,
-                            );
+                            ).await;
                             panic!("executor @{} can not response", target_executor.port());
                         }
                         tokio::time::delay_for(Duration::from_millis(600)).await;
@@ -575,14 +576,16 @@ impl NativeScheduler for DistributedScheduler {
         // let socket_addrs = self.server_uris.lock().pop_back().unwrap();
         // self.server_uris.lock().push_front(socket_addrs);
         // println!("{}", socket_addrs.to_string());
+        println!("here");
         tokio::spawn(async move {
+            println!("here1");
             DistributedScheduler::submit_task_iter::<T, U, F>(
                 task,
                 _id_in_job,
                 target_executor,
                 socket_addrs,
                 event_queues_clone,
-            )
+            ).await;
         });
     }
 
