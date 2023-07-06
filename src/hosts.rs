@@ -12,6 +12,7 @@ static HOSTS: OnceCell<Hosts> = OnceCell::new();
 #[derive(Debug, Deserialize)]
 pub(crate) struct Hosts {
     pub master: SocketAddr,
+    pub namenode: String,
     /// The slaves have the format "user@address", e.g. "worker@192.168.0.2"
     pub slaves: Vec<Slave>,
 }
@@ -20,6 +21,8 @@ pub(crate) struct Hosts {
 pub(crate) struct Slave {
     pub ip: String,
     pub key: String,
+    pub java_home: String,
+    pub hadoop_home: String,
 }
 
 //hosts.conf文件格式参见更新后的手册（相关库：std::net::SocketAddr，toml::from_str）
@@ -31,7 +34,16 @@ impl Hosts {
     fn load() -> Result<Self> {
         let home = std::env::home_dir().ok_or(Error::NoHome)?;
         println!("home:{:?}", home);
-        Hosts::load_from(home.join("hosts.conf"))
+        match Hosts::load_from(home.join("hosts.conf")) {
+            Ok(hosts) => {
+                std::env::set_var("namenode", &hosts.namenode);
+                Ok(hosts)
+            }
+            Err(e) => {
+                println!("hosts.conf Parse Error: {:?}", e);
+                Err(e)
+            }
+        }
     }
 
     fn load_from<P: AsRef<Path>>(path: P) -> Result<Self> {
