@@ -186,6 +186,16 @@ impl Context {
     //new
     pub fn new() -> Result<Arc<Self>> {
         //根据模式创建context
+        //有关hdfs的配置
+        std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
+        std::env::set_var("HADOOP_HOME", "/home/lml/hadoop-3.3.5");
+
+        let mut file = std::fs::File::create("/tmp/env1.txt").expect("create failed");
+        for (key, value) in std::env::vars() {
+            let msg = format!("{}: {}\n", key, value);
+            file.write(msg.as_bytes()).expect("write failed");
+        }
+        //创建context
         Context::with_mode(env::Configuration::get().deployment_mode)
     }
 
