@@ -165,13 +165,13 @@ impl DeploymentMode {
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct Configuration {
     pub is_driver: bool,
+    pub is_sort_shuffle: bool,
     pub local_ip: Ipv4Addr,
     pub local_dir: PathBuf,
     pub deployment_mode: DeploymentMode,
     pub shuffle_svc_port: Option<u16>,
     pub slave: Option<SlaveConfig>,
     pub loggin: LogConfig,
-    pub is_sort_shuffle: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -274,6 +274,7 @@ impl Default for Configuration {
         //创建config
         Configuration {
             is_driver: is_master,
+            is_sort_shuffle,
             local_ip,
             local_dir,
             deployment_mode,
@@ -284,7 +285,6 @@ impl Default for Configuration {
             //设置suffle_svc_port
             shuffle_svc_port: config.shuffle_service_port,
             slave,
-            is_sort_shuffle,
         }
     }
 }
