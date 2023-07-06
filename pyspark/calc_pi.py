@@ -15,7 +15,7 @@ def inside(p):
         return 0
 
 def calc():
-    conf = SparkConf().setAppName("test_SamShare").setMaster("local[4]")#本地使用四个线程
+    conf = SparkConf().setAppName("test_pi").setMaster("local[4]")#本地使用四个线程
     sc = SparkContext(conf=conf)
 
     stt=time.time()
