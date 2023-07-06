@@ -83,9 +83,18 @@ pub(crate) trait Task: TaskBase + Send + Sync + Downcast {
 
 impl_downcast!(Task);
 
-pub(crate) trait TaskBox: Task + Serialize + Deserialize + 'static + Downcast {}
+pub(crate) trait TaskBox: Task + Serialize + Deserialize + 'static + Downcast {
+    // fn clone_box(&self) -> Box<dyn TaskBox>;
+}
 
-impl<K> TaskBox for K where K: Task + Serialize + Deserialize + 'static {}
+impl<K> TaskBox for K
+where
+    K: Task + Serialize + Deserialize + 'static,
+{
+    // fn clone_box(&self) -> Box<dyn TaskBox> {
+    //     Box::new(self.clone())
+    // }
+}
 
 impl_downcast!(TaskBox);
 
@@ -111,6 +120,15 @@ impl From<ShuffleMapTask> for TaskOption {
         TaskOption::ResultTask(Box::new(t))
     }
 }
+
+// impl Clone for TaskOption {
+//     fn clone(&self) -> Self {
+//         match self {
+//             TaskOption::ResultTask(tsk) => TaskOption::ResultTask(tsk.as_ref().clone_box()),
+//             TaskOption::ShuffleMapTask(tsk) => TaskOption::ShuffleMapTask(*(tsk.clone())),
+//         }
+//     }
+// }
 
 #[derive(Serialize, Deserialize)]
 pub(crate) enum TaskResult {

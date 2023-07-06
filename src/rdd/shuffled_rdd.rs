@@ -67,12 +67,12 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> ShuffledRdd<K, V, C> {
         let shuffle_id = ctx.new_shuffle_id();
         let mut vals = RddVals::new(ctx);
 
-        vals.dependencies//添加新的依赖
+        vals.dependencies //添加新的依赖
             .push(Dependency::ShuffleDependency(Arc::new(
                 ShuffleDependency::new(
-                    shuffle_id,//id是请求新增的id
+                    shuffle_id, //id是请求新增的id
                     false,
-                    parent.get_rdd_base(),//父依赖的Rddbase
+                    parent.get_rdd_base(), //父依赖的Rddbase
                     aggregator.clone(),
                     part.clone(),
                 ),
@@ -101,7 +101,8 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> RddBase for ShuffledRdd<K, V, C> {
         self.vals.dependencies.clone()
     }
 
-    fn splits(&self) -> Vec<Box<dyn Split>> {//获得vec![ShuffledRddSplit::new(0),...,ShuffledRddSplit::new(n_partitions-1)]
+    fn splits(&self) -> Vec<Box<dyn Split>> {
+        //获得vec![ShuffledRddSplit::new(0),...,ShuffledRddSplit::new(n_partitions-1)]
         (0..self.part.get_num_of_partitions())
             .map(|x| Box::new(ShuffledRddSplit::new(x)) as Box<dyn Split>)
             .collect()
@@ -121,7 +122,7 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> RddBase for ShuffledRdd<K, V, C> {
     ) -> Result<Box<dyn Iterator<Item = Box<dyn AnyData>>>> {
         log::debug!("inside iterator_any shuffledrdd",);
         Ok(Box::new(
-            self.iterator(split)?//调用compute(split)
+            self.iterator(split)? //调用compute(split)
                 .map(|(k, v)| Box::new((k, v)) as Box<dyn AnyData>),
         ))
     }
@@ -148,23 +149,26 @@ impl<K: Data + Eq + Hash, V: Data, C: Data> Rdd for ShuffledRdd<K, V, C> {
         Arc::new(self.clone())
     }
 
-    fn compute(&self, split: Box<dyn Split>) -> Result<Box<dyn Iterator<Item = Self::Item>>> {//这里的split是reduce_id
+    fn compute(&self, split: Box<dyn Split>) -> Result<Box<dyn Iterator<Item = Self::Item>>> {
+        //这里的split是reduce_id
         log::debug!("compute inside shuffled rdd");
         let start = Instant::now();
         //fetch是一个async函数，调用结果是一个future，<k,v>是URL和INDEX
         let fut = ShuffleFetcher::fetch::<K, C>(self.shuffle_id, split.get_index());
         let mut combiners: HashMap<K, Option<C>> = HashMap::new();
-        for (k, c) in futures::executor::block_on(fut)?.into_iter() {//fut里面装满了读取到的shuffle结果，这个迭代器里面都是(k,v)对
+        for (k, c) in futures::executor::block_on(fut)?.into_iter() {
+            //fut里面装满了读取到的shuffle结果，这个迭代器里面都是(k,v)对
             //若键已存在，就使用aggreator的merge_comboners.call来合并，否则就以新键插入这个值
-            if let Some(old_c) = combiners.get_mut(&k) {//get_mut:Returns a mutable reference to the value corresponding to the key.
-                let old = old_c.take().unwrap();//old:k对应的value
+            if let Some(old_c) = combiners.get_mut(&k) {
+                //get_mut:Returns a mutable reference to the value corresponding to the key.
+                let old = old_c.take().unwrap(); //old:k对应的value
                 let input = ((old, c),);
-                let output = self.aggregator.merge_combiners.call(input);//拼接input与output
+                let output = self.aggregator.merge_combiners.call(input); //拼接input与output
                 *old_c = Some(output);
             } else {
                 combiners.insert(k, Some(c));
             }
-        }//把属于同一个k的值聚在一起
+        } //把属于同一个k的值聚在一起
 
         log::debug!("time taken for fetching {}", start.elapsed().as_millis());
         Ok(Box::new(
