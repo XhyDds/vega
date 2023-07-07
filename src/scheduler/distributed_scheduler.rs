@@ -366,7 +366,7 @@ impl DistributedScheduler {
                 }
             }
         };
-        tokio::spawn(async {monitor::poster::post(String::from("0")).await;});
+        tokio::spawn(async {monitor::poster::post(String::from("1")).await;});
     }
 
     async fn task_failed<T: Data, U: Data, F>(
