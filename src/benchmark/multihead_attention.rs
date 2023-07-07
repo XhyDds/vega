@@ -1,21 +1,21 @@
 use rand::Rng;
-use std::sync::Arc;
-use std::time::Instant;
 use vega::*;
-/// 蒙特卡洛方法计算pi
-/// param(Option<i32>) 是随机试验次数
-/// num_slices(Option<usize>)是rdd分区数量
-/// 这里使用Context的引用传参，如果直接传入会大大损失性能
-/// 2.971s->1.130s
+
 #[allow(dead_code)]
-pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>) {
+pub fn multihead_attention(
+    sc: &Arc<Context>,
+    input_size: Option<i32>,
+    heads_num: Option<i32>,
+    num_slices: Option<usize>,
+) {
     let start = Instant::now();
-    let param = param.unwrap_or(100000);
+    let input_size = input_size.unwrap_or(10000);
+    let heads_num = heads_num.unwrap_or(100);
     let num_slices = num_slices.unwrap_or(2);
-    let col = sc.make_rdd(0..param, num_slices);
-    let mut rng = rand::thread_rng();
-    //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
+    let k_weight = sc.make_rdd(0..input_size * heads_num, num_slices);
+    let v = sc.make_rdd(0..heads_num, num_slices);
     let coordinate_iter = col.map(Fn!(|_| {
+        let mut rng = rand::thread_rng();
         let pair = (
             rng.gen_range(-100.0f64, 100.0f64) as f64,
             rng.gen_range(-100.0f64, 100.0f64) as f64,
@@ -26,10 +26,12 @@ pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>)
             0
         }
     }));
+
+    //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
+
     let res = coordinate_iter.fold(0, Fn!(|acc, i| acc + i)).unwrap();
     println!("result: {:?}", (res as f64) * 4.0 / (param as f64));
 
-    // benchmark::pi::calc_pi(sc,Some(1000000),Some(2));
     let end = start.elapsed();
     println!("in fn {:?}", end);
     // println!("result: {:?}", res);
