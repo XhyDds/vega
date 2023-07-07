@@ -1,17 +1,14 @@
 //! This module implements LocalFs Read RDD for reading files in LocalFs
-use std::io::{BufReader, Read};
-use std::fs::{self, File};
+use std::io::Read;
+use std::fs;
 use std::sync::{Arc, Weak};
 
 use crate::context::Context;
 use crate::dependency::Dependency;
 use crate::error::Result;
-use crate::hosts::Hosts;
 use crate::rdd::{Rdd, RddBase, RddVals};
 use crate::serializable_traits::AnyData;
 use crate::split::Split;
-use hdrs::Client;
-use itertools::Itertools;
 use parking_lot::Mutex;
 use serde::Deserialize;
 use serde_derive::Serialize;
@@ -22,7 +19,6 @@ use serde_derive::Serialize;
 pub struct LocalFsReadRddSplit {
     rdd_id: i64,
     index: usize,
-    nn: String,
     values: Vec<String>,
 }
 
@@ -33,10 +29,9 @@ impl Split for LocalFsReadRddSplit {
 }
 
 impl LocalFsReadRddSplit {
-    fn new(rdd_id: i64, nn: String, index: usize, values: Vec<String>) -> Self {
+    fn new(rdd_id: i64, index: usize, values: Vec<String>) -> Self {
         LocalFsReadRddSplit {
             rdd_id,
-            nn,
             index,
             values,
         }
@@ -47,11 +42,10 @@ impl LocalFsReadRddSplit {
         let len = data.len();
         let mut res = Vec::with_capacity(len);
         for path in data {
-            let fs = Client::connect(self.nn.as_str()).unwrap();
-            let file = fs.open_file().read(true).open(path.as_str()).unwrap();
+            let mut file = fs::File::open(path.as_str()).expect("file not found");
             let mut content = vec![];
-            let mut reader = BufReader::new(file);
-            reader.read_to_end(&mut content).unwrap();
+            //let mut reader = BufReader::new(file);
+            file.read_to_end(&mut content).unwrap();
             res.push(content);
         }
         println!("finished reading files");
@@ -78,7 +72,6 @@ pub struct LocalFsReadRddVals {
 pub struct LocalFsReadRdd {
     #[serde(skip_serializing, skip_deserializing)]
     name: Mutex<String>,
-    nn: String,
     path: String,
     rdd_vals: Arc<LocalFsReadRddVals>,
 }
@@ -87,7 +80,6 @@ impl Clone for LocalFsReadRdd {
     fn clone(&self) -> Self {
         LocalFsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
-            nn: self.nn.clone(),
             path: self.path.clone(),
             rdd_vals: self.rdd_vals.clone(),
         }
@@ -100,28 +92,11 @@ impl Clone for LocalFsReadRdd {
 ///
 impl LocalFsReadRdd {
     pub fn new(context: Arc<Context>, path: String, num_slices: usize) -> Self {
-        let nn = match Hosts::get() {
-            //namenode默认是master
-            Ok(hosts) => {
-                let mut res = hosts.master.to_string();
-                let pos = res.find(':');
-                match pos {
-                    Some(pos) => {
-                        res.replace_range(pos.., ":9000");
-                        res
-                    }
-                    None => res,
-                }
-            }
-            Err(_) => String::from("localhost:9000"),
-        };
 
-        let nn_c = nn.clone();
         let path_c = path.clone();
 
         LocalFsReadRdd {
             name: Mutex::new("parallel_collection".to_owned()),
-            nn,
             path,
             rdd_vals: Arc::new(LocalFsReadRddVals {
                 //downgrade()方法返回一个Weak<T>类型的对象，Weak<T>是一个弱引用，不会增加引用计数
@@ -137,7 +112,7 @@ impl LocalFsReadRdd {
     }
 
     /**
-     * slice 接收nn，path和分区数量 num_slices
+     * slice 接收path和分区数量 num_slices
      * 读取hdfs对应路径，将它们分区
      * 如果文件数量少于分区数量，则将分区数量改为文件数量
      */
@@ -203,7 +178,6 @@ impl RddBase for LocalFsReadRdd {
             .map(|i| {
                 Box::new(LocalFsReadRddSplit::new(
                     self.rdd_vals.vals.id as i64,
-                    self.nn.clone(),
                     i,
                     self.rdd_vals.splits_[i as usize].to_vec(),
                 )) as Box<dyn Split>
@@ -239,7 +213,6 @@ impl Rdd for LocalFsReadRdd {
     fn get_rdd(&self) -> Arc<dyn Rdd<Item = Self::Item>> {
         Arc::new(LocalFsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
-            nn: self.nn.clone(),
             path: self.path.clone(),
             rdd_vals: self.rdd_vals.clone(),
         })

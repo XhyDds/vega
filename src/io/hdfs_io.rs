@@ -66,10 +66,10 @@ impl HdfsIO {
         path: &str,
         context: &Arc<Context>,
         num_slices: usize,
-    ) -> Result<HdfsReadRdd>
+    ) -> HdfsReadRdd
     {
-        let rdd = HdfsReadRdd::new(context.clone(), path.to_string(), num_slices);
-        Ok(rdd)
+        let rdd = HdfsReadRdd::new(context.clone(), self.nn.clone(), path.to_string(), num_slices);
+        rdd
     }
 
     pub fn read_to_rdd_and_decode<U, F>(
@@ -78,14 +78,14 @@ impl HdfsIO {
         context: &Arc<Context>,
         num_slices: usize,
         decoder: F,
-    ) -> Result<SerArc<dyn Rdd<Item = U>>>
+    ) -> SerArc<dyn Rdd<Item = U>>
     where
         F: SerFunc(Vec<u8>) -> U,
         U: Data,
     {
-        let rdd = HdfsReadRdd::new(context.clone(), path.to_string(), num_slices);
+        let rdd = HdfsReadRdd::new(context.clone(), self.nn.clone(), path.to_string(), num_slices);
         let rdd = rdd.map(decoder);
-        Ok(rdd)
+        rdd
     }
 
     pub fn write_to_hdfs (&mut self, data: &[u8], path: &str, create: bool) -> Result<()> {

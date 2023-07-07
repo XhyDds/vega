@@ -15,6 +15,8 @@ mod local_file_reader;
 
 mod decoders;
 
+mod local_fs_io;
+
 #[cfg(feature = "hdrs_valid")]
 pub use hdfs_file_reader::{HdfsReader, HdfsReaderConfig};
 
@@ -24,6 +26,8 @@ pub use hdfs_io::HdfsIO;
 pub use decoders::Decoders;
 
 pub use local_file_reader::{LocalFsReader, LocalFsReaderConfig};
+
+pub use local_fs_io::LocalFsIO;
 
 pub trait ReaderConfiguration<I: Data> {
     fn make_reader<F, O>(self, context: Arc<Context>, decoder: F) -> SerArc<dyn Rdd<Item = O>>

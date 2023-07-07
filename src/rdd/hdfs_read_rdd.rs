@@ -5,7 +5,6 @@ use std::sync::{Arc, Weak};
 use crate::context::Context;
 use crate::dependency::Dependency;
 use crate::error::Result;
-use crate::hosts::Hosts;
 use crate::rdd::{Rdd, RddBase, RddVals};
 use crate::serializable_traits::AnyData;
 use crate::split::Split;
@@ -17,7 +16,7 @@ use serde_derive::Serialize;
 
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct HdfsReadRddSplit {
+pub(crate) struct HdfsReadRddSplit {
     rdd_id: i64,
     index: usize,
     nn: String,
@@ -64,7 +63,7 @@ impl HdfsReadRddSplit {
 /// num_slices: 分区数量
 /// context: 环境/上下文(接受一个弱引用)
 #[derive(Serialize, Deserialize)]
-pub struct HdfsReadRddVals {
+pub(crate) struct HdfsReadRddVals {
     vals: Arc<RddVals>,
     #[serde(skip_serializing, skip_deserializing)]
     context: Weak<Context>,
@@ -97,22 +96,7 @@ impl Clone for HdfsReadRdd {
 /// 产生一个HdfsReadRdd对象
 ///
 impl HdfsReadRdd {
-    pub fn new(context: Arc<Context>, path: String, num_slices: usize) -> Self {
-        let nn = match Hosts::get() {
-            //namenode默认是master
-            Ok(hosts) => {
-                let mut res = hosts.master.to_string();
-                let pos = res.find(':');
-                match pos {
-                    Some(pos) => {
-                        res.replace_range(pos.., ":9000");
-                        res
-                    }
-                    None => res,
-                }
-            }
-            Err(_) => String::from("localhost:9000"),
-        };
+    pub(crate) fn new(context: Arc<Context>, nn:String, path: String, num_slices: usize) -> Self {
 
         let nn_c = nn.clone();
         let path_c = path.clone();
