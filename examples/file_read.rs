@@ -22,15 +22,15 @@ fn main() -> Result<()> {
     // let lines = h
     //     .read_to_rdd_and_decode("/csv_folder", &context, 2, Decoders::to_strings());
     let lines = LocalFsIO::read_to_rdd_and_decode("/home/lml/1.csv", &context, 2, Decoders::to_strings());
-    let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
-        Box::new(lines.into_iter().map(|line| {
-            let line = line.split(',').collect::<Vec<_>>();
-            (
-                (line[0].to_string()),
-                (line[7].parse::<f64>().unwrap(), 1.0),
-            )
-        })) as Box<dyn Iterator<Item = _>>
-    }));
+    // let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
+    //     Box::new(lines.into_iter().map(|line| {
+    //         let line = line.split(',').collect::<Vec<_>>();
+    //         (
+    //             (line[0].to_string()),
+    //             (line[7].parse::<f64>().unwrap(), 1.0),
+    //         )
+    //     })) as Box<dyn Iterator<Item = _>>
+    // }));
     let res = lines.collect().unwrap();
     println!("{:?}", res);
     // println!("{:?}", h.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/2.txt", true));
