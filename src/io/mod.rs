@@ -6,9 +6,6 @@ use crate::serializable_traits::{Data, SerFunc};
 use crate::SerArc;
 
 #[cfg(feature = "hdrs_valid")]
-mod hdfs_file_reader;
-
-#[cfg(feature = "hdrs_valid")]
 mod hdfs_io;
 
 mod local_file_reader;
@@ -16,9 +13,6 @@ mod local_file_reader;
 mod decoders;
 
 mod local_fs_io;
-
-#[cfg(feature = "hdrs_valid")]
-pub use hdfs_file_reader::{HdfsReader, HdfsReaderConfig};
 
 #[cfg(feature = "hdrs_valid")]
 pub use hdfs_io::HdfsIO;
