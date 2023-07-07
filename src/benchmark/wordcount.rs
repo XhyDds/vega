@@ -1,58 +1,33 @@
-use std::fs::{create_dir_all, File};
-use std::io::prelude::*;
-use std::sync::Arc;
-
-use capnp::private::units::WORDS_PER_POINTER;
-use once_cell::sync::Lazy;
-use vega::io::*;
-use vega::partitioner::HashPartitioner;
+use std::time::Instant;
+use std::{env, io::Write};
+use vega::io::{HdfsIO, LocalFsIO, Decoders};
 use vega::*;
+pub fn wordcount() -> Result<()> {
+    //let start = Instant::now();
 
+    let context = Context::new()?;
+    let mut h = HdfsIO::new().unwrap();
+    let lines = h
+        .read_to_rdd_and_decode("/home/yuri/docs/enwik8", &context, 2, Decoders::to_strings());
+    let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
+        Box::new(lines.into_iter().map(|line| {
+            let line = line.split(' ').collect::<Vec<_>>().into_iter().map(|s| s.to_string()).collect::<Vec<_>>();
+            line
+        })) as Box<dyn Iterator<Item = _>>
+    }));
+    let kv = lines.flat_map(Fn!(
+        |words: Vec<String>| {
+            Box::new(words.into_iter().map(
+                |word| (word, 1)
+            )) as Box<dyn Iterator<Item = _>>
+    }));
 
-#[allow(unused_must_use)]
-fn set_up(file_name: &str) {
-    let WORK_DIR=std::env::current_dir().unwrap();
-    const TEST_DIR: &str = "tests/testdoc";
-    let temp_dir = WORK_DIR.join(TEST_DIR);
-    println!("Creating tests in dir: {}", (&temp_dir).to_str().unwrap());
-    create_dir_all(&temp_dir);
-
-    let fixture =
-        b"This is some textual test data.\nCan be converted to strings and there are two lines.";
-
-    if !std::path::Path::new(file_name).exists() {
-        let mut f = File::create(temp_dir.join(file_name)).unwrap();
-        f.write_all(fixture).unwrap();
-    }
-}
-pub fn wordcount(sc: &Arc<Context>, file_name: Option<&str>){
-
-    let deserializer = Fn!(|file: std::path::PathBuf| {
-        let mut file = File::open(file).unwrap();
-        let mut content = String::new();
-        file.read_to_string(&mut content).unwrap();
-        let parsed: Vec<_> = content.lines().map(|s| s.to_string()).collect();
-        parsed
-    });
-    let WORK_DIR=std::env::current_dir().unwrap();
-    let file_path=WORK_DIR.join("tests/testdoc");
-    println!("file_path={:?}",file_path);
-    let file_name=file_name.unwrap_or("doc_1");
-    set_up(file_name);
-    
-    let textfile = 
-        sc.read_source(LocalFsReaderConfig::new(file_path), deserializer)
-            .flat_map(Fn!(|line:Vec<std::string::String>|{
-                // println!("{:?}",line);
-                Box::new(line.into_iter()) as Box<dyn Iterator<Item = _>>
-            }));
-    // let r=textfile.map(Fn!(|line|{
-    //     println!("{line}");
-    //     for s in line.split(" "){
-
-    //     }
-    // }));
-    
-
-    // println!("{:?}",r.collect());
+    let res = kv.reduce_by_key(Fn!(
+        |(a, b)| a + b
+    ), 2).collect().unwrap();
+    println!("{:?}", res);
+    // println!("{:?}", h.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/2.txt", true));
+    //let duration = start.elapsed();
+    //println!("Time elapsed is: {:?}", duration);
+    Ok(())
 }

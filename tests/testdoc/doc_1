@@ -1,2 +1,8 @@
 This is some textual test data.
-Can be converted to strings and there are two lines.
+Can be converted to strings and there are two lines.and 277 others
+= note: required for `[closure@src/benchmark/wordcount.rs:65:22: 65:35]` to implement `DeserializeOwned`
+= note: required for `[closure@src/benchmark/wordcount.rs:65:22: 65:35]` to implement `SerFunc<(std::string::String,)>`
+note: required by a bound in `vega::Rdd::flat_map`
+/home/yuri/Rust/vega/src/rdd/rdd.rs:241:12
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.

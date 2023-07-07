@@ -26,6 +26,7 @@ fn test_group_by_key() {
         ("y".to_string(), 8),
     ];
     let r = sc.make_rdd(vec, 4);
+    // let vv=r.group_by_key(num_splits)
     let g = r.group_by_key(4);
     let mut res = g.collect().unwrap();
     res.sort();
