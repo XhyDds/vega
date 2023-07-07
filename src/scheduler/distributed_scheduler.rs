@@ -9,7 +9,7 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use crate::dependency::ShuffleDependencyTrait;
-use crate::env;
+use crate::{env, monitor};
 use crate::error::{Error, NetworkError, Result};
 use crate::map_output_tracker::MapOutputTracker;
 use crate::partial::{ApproximateActionListener, ApproximateEvaluator, PartialResult};
@@ -366,6 +366,7 @@ impl DistributedScheduler {
                 }
             }
         };
+        tokio::spawn(async {monitor::poster::post(String::from("0")).await;});
     }
 
     async fn task_failed<T: Data, U: Data, F>(
@@ -551,6 +552,7 @@ impl NativeScheduler for DistributedScheduler {
         }
         log::debug!("inside submit task");
         log::info!("submit task {}", task.get_task_id());
+        tokio::spawn(async {monitor::poster::post(String::from("0")).await;});
         let event_queues_clone = self.event_queues.clone();
         let socket_addrs = self.server_uris.clone();
         tokio::spawn(async move {
