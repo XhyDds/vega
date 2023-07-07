@@ -7,6 +7,7 @@ use prometheus_client::registry::Registry;
 use std::sync::Arc;
 
 use crate::context::Context;
+use crate::env;
 
 use tide::{Middleware, Next, Request, Result};
 
@@ -14,14 +15,33 @@ pub async fn add_metric(sc: Arc<Context>) -> std::result::Result<(), std::io::Er
     let mut registry = Registry::default();
     let http_requests_total = Family::<Labels, Counter>::default();
     let node_num: Counter = Counter::default();
-    
+    let vega_seconds: Counter = Counter::default();
+
     registry.register(
-        "http_requests_total",
+        "http_requests",
         "Number of HTTP requests",
         http_requests_total.clone(),
     );
     registry.register("node_num", "Number of nodes in cluster", node_num.clone());
-    node_num.inc_by(sc.address_map.len() as u64);
+    registry.register(
+        "vega_seconds",
+        "Running seconds of vega",
+        vega_seconds.clone(),
+    );
+
+    node_num.inc();
+
+    tokio::spawn(async move {
+        loop {
+            vega_seconds.inc();
+            tokio::time::delay_for(tokio::time::Duration::from_secs(1)).await;
+        }
+    });
+
+    let deployment_mode = env::Configuration::get().deployment_mode;
+    if deployment_mode == env::DeploymentMode::Distributed {
+        node_num.inc_by(sc.address_map.len() as u64);
+    }
 
     let middleware = MetricsMiddleware {
         http_requests_total,
@@ -42,7 +62,7 @@ pub async fn add_metric(sc: Arc<Context>) -> std::result::Result<(), std::io::Er
                 .build();
             Ok(response)
         });
-    app.listen("127.0.0.1:8080").await?;
+    app.listen("127.0.0.1:8000").await?;
 
     Ok(())
 }
