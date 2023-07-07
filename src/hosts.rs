@@ -33,7 +33,7 @@ impl Hosts {
 
     fn load() -> Result<Self> {
         let home = std::env::home_dir().ok_or(Error::NoHome)?;
-        println!("home:{:?}", home);
+        log::info!("home:{:?}", home);
 
         match Hosts::load_from(home.join("hosts.conf")) {
             Ok(hosts) => {

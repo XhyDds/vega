@@ -286,7 +286,7 @@ impl Context {
         let job_work_dir_str = job_work_dir
             .to_str()
             .ok_or_else(|| Error::PathToString(job_work_dir.clone()))?;
-        println!("{}", job_work_dir_str);
+        println!("work_dir:{}", job_work_dir_str);
         let binary_path = std::env::current_exe().map_err(|_| Error::CurrentBinaryPath)?;
         let binary_path_str = binary_path
             .to_str()
@@ -391,8 +391,8 @@ impl Context {
                 // Copy binary:
                 //赋值二进制文件到slave中
                 let remote_path = format!("{}:{}/{}", address, job_work_dir_str, binary_name);
-                // println!("{}", binary_path_str);
-                // println!("{}", remote_path);
+                log::debug!("{}", binary_path_str);
+                log::debug!("{}", remote_path);
                 Command::new("scp")
                     .args(&["-i", key_path, &binary_path_str, &remote_path])
                     .output()
