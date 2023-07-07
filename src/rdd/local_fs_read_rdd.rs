@@ -1,5 +1,6 @@
-//! This module implements Hdfs Read RDD for reading files in Hdfs
+//! This module implements LocalFs Read RDD for reading files in LocalFs
 use std::io::{BufReader, Read};
+use std::fs::{self, File};
 use std::sync::{Arc, Weak};
 
 use crate::context::Context;
@@ -10,6 +11,7 @@ use crate::rdd::{Rdd, RddBase, RddVals};
 use crate::serializable_traits::AnyData;
 use crate::split::Split;
 use hdrs::Client;
+use itertools::Itertools;
 use parking_lot::Mutex;
 use serde::Deserialize;
 use serde_derive::Serialize;
@@ -17,22 +19,22 @@ use serde_derive::Serialize;
 
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct HdfsReadRddSplit {
+pub struct LocalFsReadRddSplit {
     rdd_id: i64,
     index: usize,
     nn: String,
     values: Vec<String>,
 }
 
-impl Split for HdfsReadRddSplit {
+impl Split for LocalFsReadRddSplit {
     fn get_index(&self) -> usize {
         self.index
     }
 }
 
-impl HdfsReadRddSplit {
+impl LocalFsReadRddSplit {
     fn new(rdd_id: i64, nn: String, index: usize, values: Vec<String>) -> Self {
-        HdfsReadRddSplit {
+        LocalFsReadRddSplit {
             rdd_id,
             nn,
             index,
@@ -57,14 +59,14 @@ impl HdfsReadRddSplit {
     }
 }
 
-/// 结构体HdfsReadRddVals
+/// 结构体LocalFsReadRddVals
 /// 成员：
 /// RddVals: Rdd的元数据
 /// splits_: 分区
 /// num_slices: 分区数量
 /// context: 环境/上下文(接受一个弱引用)
 #[derive(Serialize, Deserialize)]
-pub struct HdfsReadRddVals {
+pub struct LocalFsReadRddVals {
     vals: Arc<RddVals>,
     #[serde(skip_serializing, skip_deserializing)]
     context: Weak<Context>,
@@ -73,17 +75,17 @@ pub struct HdfsReadRddVals {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct HdfsReadRdd {
+pub struct LocalFsReadRdd {
     #[serde(skip_serializing, skip_deserializing)]
     name: Mutex<String>,
     nn: String,
     path: String,
-    rdd_vals: Arc<HdfsReadRddVals>,
+    rdd_vals: Arc<LocalFsReadRddVals>,
 }
 
-impl Clone for HdfsReadRdd {
+impl Clone for LocalFsReadRdd {
     fn clone(&self) -> Self {
-        HdfsReadRdd {
+        LocalFsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
             nn: self.nn.clone(),
             path: self.path.clone(),
@@ -92,11 +94,11 @@ impl Clone for HdfsReadRdd {
     }
 }
 
-/// 函数HdfsReadRdd::new
+/// 函数LocalFsReadRdd::new
 /// 接收一个context, 一个路径path和分区数量num_slices
-/// 产生一个HdfsReadRdd对象
+/// 产生一个LocalFsReadRdd对象
 ///
-impl HdfsReadRdd {
+impl LocalFsReadRdd {
     pub fn new(context: Arc<Context>, path: String, num_slices: usize) -> Self {
         let nn = match Hosts::get() {
             //namenode默认是master
@@ -117,17 +119,17 @@ impl HdfsReadRdd {
         let nn_c = nn.clone();
         let path_c = path.clone();
 
-        HdfsReadRdd {
+        LocalFsReadRdd {
             name: Mutex::new("parallel_collection".to_owned()),
             nn,
             path,
-            rdd_vals: Arc::new(HdfsReadRddVals {
+            rdd_vals: Arc::new(LocalFsReadRddVals {
                 //downgrade()方法返回一个Weak<T>类型的对象，Weak<T>是一个弱引用，不会增加引用计数
                 context: Arc::downgrade(&context),
                 //由context生成rdd_id
                 vals: Arc::new(RddVals::new(context.clone())),
                 //由data生成的分区
-                splits_: HdfsReadRdd::slice(nn_c.as_str(), path_c.as_str(), num_slices),
+                splits_: LocalFsReadRdd::slice(path_c.as_str(), num_slices),
                 //分区数
                 num_slices,
             }),
@@ -139,35 +141,33 @@ impl HdfsReadRdd {
      * 读取hdfs对应路径，将它们分区
      * 如果文件数量少于分区数量，则将分区数量改为文件数量
      */
-    fn slice(nn: &str, path: &str, num_slices: usize) -> Vec<Vec<String>> {
+    fn slice(path: &str, num_slices: usize) -> Vec<Vec<String>> {
         let mut num_slices = num_slices;
         if num_slices < 1 {
             num_slices = 1;
         }
-        let fs = Client::connect(nn).expect("cannot connect to namenode");
-        let metadata = fs.metadata(path).expect("cannot get metadata");
+        //let fs = Client::connect(nn).expect("cannot connect to namenode");
+        let metadata = fs::metadata(path).expect("cannot get metadata");
         let is_file = metadata.is_file();
         if is_file {
             vec![vec![path.to_string()]]
         } else {
-            let dir_entries = fs.read_dir(path).expect("cannot read dir").into_inner();
-            if num_slices < dir_entries.len() {
-                num_slices = dir_entries.len();
-            }
+            let dir_entries = fs::read_dir(path).expect("cannot read dir");
             let mut res = Vec::with_capacity(num_slices);
             for _ in 0..num_slices {
                 res.push(Vec::<String>::new());
             }
             for (i, entry) in dir_entries.enumerate() {
-                if entry.is_dir() {
+                let entry = entry.expect("cannot read entry");
+                if entry.file_type().unwrap().is_dir() {
                     continue;
                 }
                 let path = entry.path();
                 let index = i % num_slices;
-                res[index].push(path.to_string());
+                res[index].push(path.to_str().unwrap().to_string());
             }
             for i in 0..num_slices {
-                if res[i].is_empty() {
+                if res[i].len() == 0 {
                     res.remove(i);
                 }
             }
@@ -176,7 +176,7 @@ impl HdfsReadRdd {
     }
 }
 
-impl RddBase for HdfsReadRdd {
+impl RddBase for LocalFsReadRdd {
     fn get_rdd_id(&self) -> usize {
         self.rdd_vals.vals.id
     }
@@ -201,7 +201,7 @@ impl RddBase for HdfsReadRdd {
     fn splits(&self) -> Vec<Box<dyn Split>> {
         (0..self.rdd_vals.splits_.len())
             .map(|i| {
-                Box::new(HdfsReadRddSplit::new(
+                Box::new(LocalFsReadRddSplit::new(
                     self.rdd_vals.vals.id as i64,
                     self.nn.clone(),
                     i,
@@ -234,10 +234,10 @@ impl RddBase for HdfsReadRdd {
     }
 }
 
-impl Rdd for HdfsReadRdd {
+impl Rdd for LocalFsReadRdd {
     type Item = Vec<u8>;
     fn get_rdd(&self) -> Arc<dyn Rdd<Item = Self::Item>> {
-        Arc::new(HdfsReadRdd {
+        Arc::new(LocalFsReadRdd {
             name: Mutex::new(self.name.lock().clone()),
             nn: self.nn.clone(),
             path: self.path.clone(),
@@ -250,10 +250,10 @@ impl Rdd for HdfsReadRdd {
     }
 
     fn compute(&self, split: Box<dyn Split>) -> Result<Box<dyn Iterator<Item = Self::Item>>> {
-        if let Some(s) = split.downcast_ref::<HdfsReadRddSplit>() {
+        if let Some(s) = split.downcast_ref::<LocalFsReadRddSplit>() {
             Ok(s.iterator())
         } else {
-            panic!("Got split object from different concrete type other than HdfsReadRddSplit")
+            panic!("Got split object from different concrete type other than LocalFsReadRddSplit")
         }
     }
 }
