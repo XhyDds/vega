@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use vega::*;
 
-fn main(){
+pub fn main(){
     let sc = Context::new().unwrap();
     let mut rng = rand::thread_rng();
     

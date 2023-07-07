@@ -1,4 +1,4 @@
-/*use std::time::Instant;
+use std::time::Instant;
 use std::{env, io::Write};
 use vega::io::{HdfsIO, LocalFsIO, Decoders};
 use vega::*;
@@ -27,6 +27,6 @@ pub fn wordcount() -> Result<()> {
     println!("{:?}", res);
     // println!("{:?}", h.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/2.txt", true));
     //let duration = start.elapsed();
-    //println!("Time elapsed is: {:?}", duration);
+    //println!("Wordcount_time_cost: {:?}", duration);
     Ok(())
-}*/
+}
