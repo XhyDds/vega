@@ -8,27 +8,25 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
     const INPUT_SIZE: usize = 10000;
     const HEADS_NUM: usize = 100;
     let num_slices = num_slices.unwrap_or(2);
-    let k_weights = sc.make_rdd(0..(HEADS_NUM as i32), num_slices);
-    let v = sc.make_rdd(0..(HEADS_NUM as i32), num_slices);
+    let k_weights = Vec::new();
+    let v = Vec::new();
 
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
     //Fn<Fn<impl Fn(&Fn<()>, ({unknown},)) -> i32>>这种可以运行
     //Fn<Fn<&usize, impl Fn(&Fn<&usize, ()>, ({unknown},)) -> Arc<Vec<f64>>>>
-    let gen_k_weight = Fn!(|_| {
-        let mut rng = rand::thread_rng();
+    let mut rng = rand::thread_rng();
+    for i in 0..HEADS_NUM {
         let mut k_weight: Vec<f64> = Vec::with_capacity(INPUT_SIZE);
         for i in 0..INPUT_SIZE {
             k_weight.push(rng.gen_range(-1.0f64, 1.0f64) as f64)
         }
-        k_weight
-    });
-    let k_weights_param = k_weights.map(gen_k_weight).collect()?; //获得k_weight的参数
-    let start = Instant::now();
-    let v_param = v.map(Fn!(|_| {
-        let mut rng = rand::thread_rng();
-        rng.gen_range(-1.0f64, 1.0f64) as f64
-    })); //获得v的参数
+        k_weights.push(k_weight);
+        v.push(rng.gen_range(-1.0f64, 1.0f64) as f64)
+    }
+    let k_weights_param = sc.parallelize(k_weights,num_slices);//获得k_weight的参数
+    let v_param =  sc.parallelize(v,num_slices);//获得v的参数
 
+    let start = Instant::now();
     for i in 0..100 {
         let mut rng = rand::thread_rng();
         let input = Vec::with_capacity(INPUT_SIZE);
@@ -39,17 +37,32 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
 
         //let query = sc.parallelize(input, num_slices);
         //let query_key_pair=query.zip(Arc::new(k_weights_param));
-        let input_rdd = sc.parallelize(input, num_slices);
-        let input_key_pair = input_rdd.zip(Arc::new(k_weights_param));
-        let dot_fn = Fn!(|q_k| {
+        let input_ref=Arc::new(input);
+        let input_ref_set=Vec::new();
+        for _ in 0..HEADS_NUM{
+            input_ref_set.push(input_ref.clone());
+        }     
+        //let input_rdd = sc.parallelize(input, num_slices);
+        /*let input_key_pair = input_rdd.zip(Arc::new(k_weights_param));
+        let dot_fn = Fn!(|q_k: (Vec<f64>, Vec<f64>)| {
+            let sum = 0.0f64;
+            for i in 0..INPUT_SIZE {
+                sum += q_k.0[i] * q_k.1[i];
+            }
+            sum
+        });*/
+        let input_ref_rdd = sc.parallelize(input_ref_set, num_slices);
+        let input_key_pair = input_ref_rdd.zip(Arc::new(k_weights_param));
+        let dot_fn = Fn!(|q_k: (Arc<Vec<f64>>, Vec<f64>)| {
             let sum = 0.0f64;
             for i in 0..INPUT_SIZE {
                 sum += q_k.0[i] * q_k.1[i];
             }
             sum
         });
-        let query_res = input_key_pair.map(dot_fn);
-        let max_query_res = query_res.max().unwrap().unwrap() as f64;
+        let query_res = input_key_pair.map(dot_fn).collect()?;
+        let max_query_res = query_res;
+        let max_query_res;
         let query_res_sub = query_res.map(Fn!(|q_res| { q_res - max_query_res }));
         let query_res_softmax = query_res_sub.map(Fn!(|q_res| { q_res.exp() }));
         let weight_v_pair = query_res_softmax.zip(Arc::new(v_param));

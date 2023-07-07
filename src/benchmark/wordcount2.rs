@@ -1,3 +1,4 @@
+/*
 use std::time::Instant;
 use std::{env, io::Write};
 use vega::io::{HdfsIO, LocalFsIO, Decoders};
@@ -31,3 +32,4 @@ pub fn wordcount2() -> Result<()> {
     //println!("Time elapsed is: {:?}", duration);
     Ok(())
 }
+*/
