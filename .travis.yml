@@ -1,8 +1,8 @@
 
-dist: xenial
+dist: jammy
 language: rust
 rust:
-- nightly
+- nightly-2023-04-17-x86_64-unknown-linux-gnu
 env:
   global:
     - export PATH="$PATH:$HOME/bin"
