@@ -7,7 +7,6 @@ pub struct LocalFsIO {}
 impl LocalFsIO {
 
     pub fn read_to_rdd(
-        &mut self,
         path: &str,
         context: &Arc<Context>,
         num_slices: usize,
@@ -18,7 +17,6 @@ impl LocalFsIO {
     }
 
     pub fn read_to_rdd_and_decode<U, F>(
-        &mut self,
         path: &str,
         context: &Arc<Context>,
         num_slices: usize,
