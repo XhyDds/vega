@@ -8,7 +8,7 @@ pub fn wordcount2() -> Result<()> {
     let context = Context::new()?;
     let mut h = HdfsIO::new().unwrap();
     let lines = h
-        .read_to_rdd_and_decode("/wc/2.txt", &context, 2, Decoders::to_strings());
+        .read_to_rdd_and_decode("/wc/1", &context, 2, Decoders::to_utf8_lines());
     let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
         Box::new(lines.into_iter().map(|line| {
             let line = line.split(' ').collect::<Vec<_>>().into_iter().map(|s| s.to_string()).collect::<Vec<_>>();
@@ -25,8 +25,8 @@ pub fn wordcount2() -> Result<()> {
     let res = kv.reduce_by_key(Fn!(
         |(a, b)| a + b
     ), 2).collect().unwrap();
-    println!("{:?}", res);
-    // println!("{:?}", h.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/2.txt", true));
+    //println!("{:?}", res);
+    println!("{:?}", h.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/1", true));
     //let duration = start.elapsed();
     //println!("Time elapsed is: {:?}", duration);
     Ok(())

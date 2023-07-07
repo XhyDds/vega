@@ -18,10 +18,10 @@ fn main() -> Result<()> {
     //         .map(|s| s.to_string())
     //         .collect::<Vec<_>>()
     // });
-    //let mut h = HdfsIO::new().unwrap();
-    // let lines = h
-    //     .read_to_rdd_and_decode("/csv_folder", &context, 2, Decoders::to_strings());
-    let lines = LocalFsIO::read_to_rdd_and_decode("/home/lml/1.csv", &context, 2, Decoders::to_strings());
+    let mut h = HdfsIO::new().unwrap();
+     let lines = h
+         .read_to_rdd_and_decode("/csv", &context, 2, Decoders::to_utf8());
+    //let lines = LocalFsIO::read_to_rdd_and_decode("/home/lml/1.csv", &context, 2, Decoders::to_utf8_lines());
     // let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
     //     Box::new(lines.into_iter().map(|line| {
     //         let line = line.split(',').collect::<Vec<_>>();
