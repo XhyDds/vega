@@ -81,6 +81,9 @@ pub enum Error {
         path: PathBuf,
     },
 
+    #[error("failed to get slaves")]
+    NoSlaves,
+
     #[error(transparent)]
     PartialJobError(#[from] crate::partial::PartialJobError),
 

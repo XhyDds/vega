@@ -14,15 +14,15 @@ pub(crate) struct Hosts {
     pub master: SocketAddr,
     pub namenode: Option<String>,
     /// The slaves have the format "user@address", e.g. "worker@192.168.0.2"
-    pub slaves: Vec<Slave>,
+    pub slaves: Option<Vec<Slave>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Slave {
     pub ip: String,
-    pub key: String,
-    pub java_home: String,
-    pub hadoop_home: String,
+    pub key: Option<String>,
+    pub java_home: Option<String>,
+    pub hadoop_home: Option<String>,
 }
 
 //hosts.conf文件格式参见更新后的手册（相关库：std::net::SocketAddr，toml::from_str）
