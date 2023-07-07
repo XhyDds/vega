@@ -15,12 +15,19 @@ addons:
       - g++
 install:
   - pip install --user ghp-import
-  - curl -O https://capnproto.org/capnproto-c++-0.7.0.tar.gz
-  - tar zxf capnproto-c++-0.7.0.tar.gz
-  - cd capnproto-c++-0.7.0
+  # - curl -O https://capnproto.org/capnproto-c++-0.7.0.tar.gz
+  # - tar zxf capnproto-c++-0.7.0.tar.gz
+  # - cd capnproto-c++-0.7.0
+  # - ./configure --prefix=$HOME
+  # - make -j3
+  # - make install
+  # - cd ../
+  - curl -O https://capnproto.org/capnproto-c++-0.10.4.tar.gz
+  - tar zxf capnproto-c++-0.10.4.tar.gz
+  - cd capnproto-c++-0.10.4
   - ./configure --prefix=$HOME
-  - make -j3
-  - make install
+  - make -j6 check
+  - smake install
   - cd ../
 script:
 - rustup override set nightly-2023-04-17-x86_64-unknown-linux-gnu
