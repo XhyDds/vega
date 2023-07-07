@@ -1,6 +1,6 @@
 use std::time::Instant;
 use std::{env, io::Write};
-use vega::io::HdfsIO;
+use vega::io::{HdfsIO, Decoders};
 use vega::*;
 fn main() -> Result<()> {
     // std::env::set_var("JAVA_HOME", "/home/lml/.jdk/jdk1.8.0_371");
@@ -20,9 +20,9 @@ fn main() -> Result<()> {
             .map(|s| s.to_string())
             .collect::<Vec<_>>()
     });
-    let mut H = HdfsIO::new("192.168.179.129".to_string()).unwrap();
+    let mut H = HdfsIO::new().unwrap();
     let lines = H
-        .read_to_rdd("/csv_folder", &context, 2, deserializer)
+        .read_to_rdd_and_decode("/csv_folder", &context, 2, Decoders::to_strings())
         .unwrap();
     //let lines = context.read_source(HdfsReaderConfig::new("/csv"), deserializer);
     //let lines = HdfsReadRdd::new(context.clone(), "/csv".to_string(), 2);

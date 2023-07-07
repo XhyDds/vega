@@ -13,11 +13,15 @@ mod hdfs_io;
 
 mod local_file_reader;
 
+mod decoders;
+
 #[cfg(feature = "hdrs_valid")]
 pub use hdfs_file_reader::{HdfsReader, HdfsReaderConfig};
 
 #[cfg(feature = "hdrs_valid")]
 pub use hdfs_io::HdfsIO;
+
+pub use decoders::Decoders;
 
 pub use local_file_reader::{LocalFsReader, LocalFsReaderConfig};
 
