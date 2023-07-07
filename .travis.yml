@@ -23,6 +23,7 @@ install:
   - make install
   - cd ../
 script:
+- rustup override set nightly-2023-04-17-x86_64-unknown-linux-gnu
 - cargo build
 - for file in $(find user_guide -name '*.md'); do rustdoc --test $file  -L ./target/debug/deps; done
 - sed -i 's/ip/0.0.0.0/g' config_files/hosts.conf
