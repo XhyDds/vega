@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use vega::*;
 
-fn main() -> Result<()> {
+fn main(){
     let sc = Context::new()?;
     let mut rng = rand::thread_rng();
     
@@ -18,5 +18,4 @@ fn main() -> Result<()> {
     //println!("result: {:?}", res);
     let end = start.elapsed();
     println!("group_by_time_cost: {:?}", end);
-    Ok(())
 }
