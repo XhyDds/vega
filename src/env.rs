@@ -308,21 +308,6 @@ impl Configuration {
                     .flatten();
             }
         }
-        // if let Some(parent_path) = binary_path.parent() {
-        //     //配置文件
-        //     if let Some(pparent_path) = parent_path.parent() {
-        //         if let Some(dir) = pparent_path.parent() {
-        //             let conf_file = dir.join("config_files/config.toml");
-        //             println!("{}", conf_file.display());
-        //             if conf_file.exists() {
-        //                 return fs::read_to_string(conf_file)
-        //                     .map(|content| toml::from_str::<Configuration>(&content).ok())
-        //                     .ok()
-        //                     .flatten();
-        //             }
-        //         }
-        //     }
-        // }
         None
     }
 }

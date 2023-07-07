@@ -12,7 +12,7 @@ static HOSTS: OnceCell<Hosts> = OnceCell::new();
 #[derive(Debug, Deserialize)]
 pub(crate) struct Hosts {
     pub master: SocketAddr,
-    pub namenode: String,
+    pub namenode: Option<String>,
     /// The slaves have the format "user@address", e.g. "worker@192.168.0.2"
     pub slaves: Vec<Slave>,
 }
@@ -34,13 +34,26 @@ impl Hosts {
     fn load() -> Result<Self> {
         let home = std::env::home_dir().ok_or(Error::NoHome)?;
         println!("home:{:?}", home);
+
         match Hosts::load_from(home.join("hosts.conf")) {
             Ok(hosts) => {
-                std::env::set_var("namenode", &hosts.namenode);
+                if let Some(namenode) = &hosts.namenode {
+                    std::env::set_var("namenode", &namenode);
+                } else {
+                    if let Some(namenode) = hosts.master.to_string().split(":").nth(0) {
+                        std::env::set_var("namenode", &namenode);
+                        log::debug!("namenode:{}", namenode);
+                    } else {
+                        log::error!("hosts.conf Parse Error");
+                    };
+                    log::warn!(
+                        "hosts.conf Parse Error: namenode not found, use default configuration."
+                    );
+                }
                 Ok(hosts)
             }
             Err(e) => {
-                println!("hosts.conf Parse Error: {:?}", e);
+                log::error!("hosts.conf Parse Error: {:?}", e);
                 Err(e)
             }
         }
