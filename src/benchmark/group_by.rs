@@ -3,9 +3,9 @@
 // use std::time::Instant;
 // use vega::*;
 
-pub fn main(){
-    let sc = Context::new().unwrap();
-    let mut rng = rand::thread_rng();
+// pub fn main(){
+//     let sc = Context::new().unwrap();
+//     let mut rng = rand::thread_rng();
     
 //     let mut vec = vec![(0, 0)];
 //     for _ in 0..1000000 {
@@ -19,3 +19,7 @@ pub fn main(){
 //     let end = start.elapsed();
 //     println!("group_by_time_cost: {:?}", end);
 // }
+
+pub fn main() -> () {
+    ()
+}
