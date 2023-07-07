@@ -13,9 +13,10 @@ pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>)
     let param = param.unwrap_or(100000);
     let num_slices = num_slices.unwrap_or(2);
     let col = sc.make_rdd(0..param, num_slices);
-    let mut rng = rand::thread_rng();
+
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
     let coordinate_iter = col.map(Fn!(|_| {
+        let mut rng = rand::thread_rng();
         let pair = (
             rng.gen_range(-100.0f64, 100.0f64) as f64,
             rng.gen_range(-100.0f64, 100.0f64) as f64,
