@@ -14,3 +14,5 @@ perf.data*
 /docker/monitoring/grafana/data/
 pyspark/output.txt
 pyspark/output
+
+user_guide/book/
