@@ -1,7 +1,7 @@
-// use rand::Rng;
-// use std::sync::Arc;
-// use std::time::Instant;
-// use vega::*;
+use rand::Rng;
+use std::sync::Arc;
+use std::time::Instant;
+use vega::*;
 
 #[allow(dead_code, unused_braces)]
 pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
