@@ -53,6 +53,8 @@ pub use union_rdd::*;
 mod hdfs_read_rdd;
 #[cfg(feature = "hdrs_valid")]
 pub use hdfs_read_rdd::*;
+mod local_fs_read_rdd;
+pub use local_fs_read_rdd::*;
 // Values which are needed for all RDDs
 #[derive(Serialize, Deserialize)]
 pub(crate) struct RddVals {

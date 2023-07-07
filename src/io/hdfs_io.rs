@@ -11,7 +11,25 @@ pub struct HdfsIO {
 }
 
 impl HdfsIO {
-    pub fn new(nn: String) -> Result<Self> {
+    pub fn new() -> Result<Self> {
+        let nn = match std::env::var("namenode") {
+            Ok(nn) => nn,
+            Err(_) => {
+                return Err(Error::HdfsNamenode);
+            }
+        };
+        // match std::env::var("java_home") {
+        //     Ok(_) => {},
+        //     Err(_) => {
+        //         return Err(Error::JavaHome);
+        //     }
+        // };
+        // match std::env::var("hadoop_home") {
+        //     Ok(_) => {},
+        //     Err(_) => {
+        //         return Err(Error::HadoopHome);
+        //     }
+        // };
         let nn = nn + ":9000";
         let fs = Client::connect(nn.as_str());
         let fs = match fs {
@@ -43,20 +61,31 @@ impl HdfsIO {
         Ok(buf)
     }
 
-    pub fn read_to_rdd<U, F>(
+    pub fn read_to_rdd(
         &mut self,
         path: &str,
         context: &Arc<Context>,
         num_slices: usize,
-        f: F,
-    ) -> Result<SerArc<dyn Rdd<Item = U>>>
+    ) -> HdfsReadRdd
+    {
+        let rdd = HdfsReadRdd::new(context.clone(), self.nn.clone(), path.to_string(), num_slices);
+        rdd
+    }
+
+    pub fn read_to_rdd_and_decode<U, F>(
+        &mut self,
+        path: &str,
+        context: &Arc<Context>,
+        num_slices: usize,
+        decoder: F,
+    ) -> SerArc<dyn Rdd<Item = U>>
     where
         F: SerFunc(Vec<u8>) -> U,
         U: Data,
     {
-        let rdd = HdfsReadRdd::new(context.clone(), path.to_string(), num_slices);
-        let rdd = rdd.map(f);
-        Ok(rdd)
+        let rdd = HdfsReadRdd::new(context.clone(), self.nn.clone(), path.to_string(), num_slices);
+        let rdd = rdd.map(decoder);
+        rdd
     }
 
     pub fn write_to_hdfs (&mut self, data: &[u8], path: &str, create: bool) -> Result<()> {
