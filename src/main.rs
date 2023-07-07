@@ -4,7 +4,7 @@ mod benchmark;
 
 // #[tokio::main]
 fn main() -> Result<()> {
-    let sc: std::sync::Arc<Context> = Context::new()?;
+    let sc: std::sync::Arc<Context> = Context::new().unwrap();
 
     //tokio::spawn(monitor::metrics::add_metric(sc.clone()));
 
