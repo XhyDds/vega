@@ -196,7 +196,17 @@ impl Context {
             file.write(msg.as_bytes()).expect("write failed");
         }
         //创建context
-        Context::with_mode(env::Configuration::get().deployment_mode)
+        match Context::with_mode(env::Configuration::get().deployment_mode) {
+            Ok(ctx) => {
+                log::info!("context created");
+                println!("context created");
+                Ok(ctx)
+            }
+            Err(err) => {
+                log::error!("failed to create context: {}", err);
+                Err(err)
+            }
+        }
     }
 
     /*函数with_mode
