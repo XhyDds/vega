@@ -9,7 +9,7 @@ async fn main() -> Result<()> {
     tokio::spawn(monitor::metrics::add_metric(sc.clone()));
 
     let start = Instant::now();
-    benchmark::pi::calc_pi(&sc, Some(1000000), Some(1000000));
+    benchmark::pi::calc_pi(&sc, Some(1000000), Some(3));
     // benchmark::e::calc_e(&sc, Some(10000), Some(3));
     let end = start.elapsed();
     println!("{:?}", end);
