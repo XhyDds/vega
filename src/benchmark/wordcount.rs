@@ -46,13 +46,13 @@ pub fn wordcount(sc: &Arc<Context>, file_name: Option<&str>){
                 // println!("{:?}",line);
                 Box::new(line.into_iter()) as Box<dyn Iterator<Item = _>>
             }));
-    let r=textfile.map(Fn!(|line|{
-        println!("{line}");
-        for s in line.split(" "){
-            
-        }
-    }));
+    // let r=textfile.map(Fn!(|line|{
+    //     println!("{line}");
+    //     for s in line.split(" "){
+
+    //     }
+    // }));
     
 
-    println!("{:?}",r.collect());
+    // println!("{:?}",r.collect());
 }

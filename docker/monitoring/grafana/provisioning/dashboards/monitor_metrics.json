@@ -105,10 +105,11 @@
                         "uid": "PBFA97CFB590B2093"
                     },
                     "editorMode": "code",
-                    "expr": "(1-sum(irate(node_cpu_seconds_total{mode=\"idle\"}[2m]))/sum(irate(node_cpu_seconds_total[2m])))*100",
+                    "expr": "(1-sum(irate(node_cpu_seconds_total{mode=\"idle\"}[2m]))by(instance)/sum(irate(node_cpu_seconds_total[2m]))by(instance))*100",
+                    "hide": false,
                     "instant": false,
                     "interval": "1m",
-                    "legendFormat": "notIdle",
+                    "legendFormat": "notIdle - {{instance}}",
                     "range": true,
                     "refId": "A"
                 },
@@ -118,11 +119,11 @@
                         "uid": "PBFA97CFB590B2093"
                     },
                     "editorMode": "code",
-                    "expr": "sum(irate(node_cpu_seconds_total{mode=\"iowait\"}[2m]))/sum(irate(node_cpu_seconds_total[2m]))*100",
+                    "expr": "sum(irate(node_cpu_seconds_total{mode=\"iowait\"}[2m]))by(instance)/sum(irate(node_cpu_seconds_total[2m]))by(instance)*100",
                     "hide": false,
                     "instant": false,
                     "interval": "1m",
-                    "legendFormat": "iowait",
+                    "legendFormat": "iowait - {{instance}}",
                     "range": true,
                     "refId": "B"
                 },
@@ -132,11 +133,11 @@
                         "uid": "PBFA97CFB590B2093"
                     },
                     "editorMode": "code",
-                    "expr": "sum(irate(node_cpu_seconds_total{mode=\"system\"}[2m]))/sum(irate(node_cpu_seconds_total[2m]))*100",
+                    "expr": "sum(irate(node_cpu_seconds_total{mode=\"system\"}[2m]))by(instance)/sum(irate(node_cpu_seconds_total[2m]))by(instance)*100",
                     "hide": false,
                     "instant": false,
                     "interval": "1m",
-                    "legendFormat": "system",
+                    "legendFormat": "system - {{instance}}",
                     "range": true,
                     "refId": "C"
                 },
@@ -146,11 +147,11 @@
                         "uid": "PBFA97CFB590B2093"
                     },
                     "editorMode": "code",
-                    "expr": "sum(irate(node_cpu_seconds_total{mode=\"user\"}[2m]))/sum(irate(node_cpu_seconds_total[2m]))*100",
+                    "expr": "sum(irate(node_cpu_seconds_total{mode=\"user\"}[2m]))by(instance)/sum(irate(node_cpu_seconds_total[2m]))by(instance)*100",
                     "hide": false,
                     "instant": false,
                     "interval": "1m",
-                    "legendFormat": "system",
+                    "legendFormat": "user - {{instance}}",
                     "range": true,
                     "refId": "D"
                 }
@@ -254,9 +255,207 @@
             ],
             "title": "different cpu",
             "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 8
+            },
+            "id": 4,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "pluginVersion": "10.0.1",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
+                    "editorMode": "code",
+                    "expr": "node_num_total",
+                    "instant": false,
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "current node number",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 6,
+                "y": 8
+            },
+            "id": 5,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "pluginVersion": "10.0.1",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "vega_seconds_total",
+                    "instant": true,
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "vega running time",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "max": 100,
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "percent"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 8
+            },
+            "id": 3,
+            "maxDataPoints": 900,
+            "options": {
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true
+            },
+            "pluginVersion": "10.0.1",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "(1-((sum(rate(node_cpu_seconds_total{mode=\"idle\"}[2m]))by(instance))/sum(rate(node_cpu_seconds_total[2m])) by(instance)))*100",
+                    "instant": false,
+                    "interval": "1m",
+                    "legendFormat": "{{instance}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "different nodes",
+            "type": "gauge"
         }
     ],
-    "refresh": "",
+    "refresh": "5s",
     "schemaVersion": 38,
     "style": "dark",
     "tags": [],
@@ -271,6 +470,6 @@
     "timezone": "",
     "title": "my monitoring",
     "uid": "a14bd052-4548-4f7f-8f18-48d2a32e30cb",
-    "version": 1,
+    "version": 17,
     "weekStart": ""
 }
