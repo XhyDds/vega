@@ -12,7 +12,7 @@ use vega::*;
 #[allow(unused_must_use)]
 fn set_up(file_name: &str) {
     let WORK_DIR=std::env::current_dir().unwrap();
-    const TEST_DIR: &str = "src/benchmark";
+    const TEST_DIR: &str = "tests/testdoc";
     let temp_dir = WORK_DIR.join(TEST_DIR);
     println!("Creating tests in dir: {}", (&temp_dir).to_str().unwrap());
     create_dir_all(&temp_dir);
@@ -35,14 +35,24 @@ pub fn wordcount(sc: &Arc<Context>, file_name: Option<&str>){
         parsed
     });
     let WORK_DIR=std::env::current_dir().unwrap();
-    let file_path=WORK_DIR.join("src/benchmark");
-    println!("file_path={:?}",WORK_DIR);
+    let file_path=WORK_DIR.join("tests/testdoc");
+    println!("file_path={:?}",file_path);
     let file_name=file_name.unwrap_or("doc_1");
     set_up(file_name);
     
-    let textfile = sc
-        .read_source(LocalFsReaderConfig::new(file_path), deserializer)
-        .collect()
-        .unwrap();//rdd collect
-    println!("{:?}",result);
+    let textfile = 
+        sc.read_source(LocalFsReaderConfig::new(file_path), deserializer)
+            .flat_map(Fn!(|line:Vec<std::string::String>|{
+                // println!("{:?}",line);
+                Box::new(line.into_iter()) as Box<dyn Iterator<Item = _>>
+            }));
+    let r=textfile.map(Fn!(|line|{
+        println!("{line}");
+        for s in line.split(" "){
+            
+        }
+    }));
+    
+
+    println!("{:?}",r.collect());
 }

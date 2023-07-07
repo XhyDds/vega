@@ -329,6 +329,7 @@ pub trait Rdd: RddBase + 'static {
         let results = self.get_context().run_job(self.get_rdd(), reduce_partition);
         Ok(results?.into_iter().flatten().reduce(f))
     }
+    
 
     /// Aggregate the elements of each partition, and then the results for all the partitions, using a
     /// given associative function and a neutral "initial value". The function
