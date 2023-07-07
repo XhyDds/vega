@@ -34,7 +34,6 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
             input.push(rng.gen_range(-1.0f64, 1.0f64) as f64);
         }
         //let start = Instant::now();
-        println!("multihead_attention_1: {:?}", start.elapsed());
         //let query = sc.parallelize(input, num_slices);
         //let query_key_pair=query.zip(Arc::new(k_weights_param));
         let input_ref = Arc::new(input);
@@ -42,7 +41,6 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
         for _ in 0..HEADS_NUM {
             input_ref_set.push(input_ref.clone());
         }
-        println!("multihead_attention_2: {:?}", start.elapsed());
         //let input_rdd = sc.parallelize(input, num_slices);
         /*let input_key_pair = input_rdd.zip(Arc::new(k_weights_param));
         let dot_fn = Fn!(|q_k: (Vec<f64>, Vec<f64>)| {
@@ -56,14 +54,14 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
         let input_key_pair = input_ref_rdd.zip(Arc::new(k_weights_param.clone()));
         let dot_fn = Fn!(|q_k: (Arc<Vec<f64>>, Vec<f64>)| {
             let mut sum = 0.0f64;
-            for i in 0..INPUT_SIZE {
+            for i in 0..1 {
                 sum += q_k.0[i] * q_k.1[i];
             }
             sum
         });
-        println!("multihead_attention_3: {:?}", start.elapsed());
-        let mut query_res = input_key_pair.map(dot_fn).collect().unwrap() as Vec<f64>;
-        println!("multihead_attention_4: {:?}", start.elapsed());
+        let mut query_res = input_key_pair.map(dot_fn).collect().unwrap();
+        let mut query_res = query_res as Vec<f64>;
+
         //let max_query_res = query_res.fold(0.0f64, Fn!(|acc, i| acc.max(i))).unwrap();
         //let max_query_res=
         let mut max_query_res = query_res[0];
@@ -77,7 +75,6 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
         //let query_res_sub = query_res.map(Fn!(|q_res| { q_res - max_query_res }));
         //let query_res_softmax = query_res_sub.map(Fn!(|q_res| { q_res.exp() }));
         let query_res_softmax = sc.parallelize(query_res, num_slices);
-        println!("multihead_attention_5: {:?}", start.elapsed());
         let weight_v_pair = query_res_softmax.zip(Arc::new(v_param.clone()));
         let res_vec = weight_v_pair.map(Fn!(|w_v: (f64, f64)| { w_v.0 * w_v.1 }));
         let res = res_vec.fold(0.0f64, Fn!(|acc, i| acc + i)).unwrap();

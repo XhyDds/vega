@@ -4,7 +4,7 @@ use std::time::Instant;
 use vega::*;
 
 fn main(){
-    let sc = Context::new()?;
+    let sc = Context::new().unwrap();
     let mut rng = rand::thread_rng();
     
     let mut vec = vec![(0, 0)];
