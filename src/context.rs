@@ -286,7 +286,7 @@ impl Context {
         let job_work_dir_str = job_work_dir
             .to_str()
             .ok_or_else(|| Error::PathToString(job_work_dir.clone()))?;
-        println!("{}", job_work_dir_str);
+        println!("work_dir:{}", job_work_dir_str);
         let binary_path = std::env::current_exe().map_err(|_| Error::CurrentBinaryPath)?;
         let binary_path_str = binary_path
             .to_str()
@@ -304,122 +304,137 @@ impl Context {
         //创建logger
         initialize_loggers(job_work_dir.join("ns-driver.log"));
 
-        //对每个slave进行配置
-        for slave in &hosts::Hosts::get()?.slaves {
-            let address = &slave.ip;
-            let key_path = &slave.key;
-            let java_home = &slave.java_home;
-            let hadoop_home = &slave.hadoop_home;
-            log::debug!("deploying executor at address {:?}", address);
-            let address_ip: Ipv4Addr = address
-                .split('@')
-                .nth(1)
-                .ok_or_else(|| Error::ParseHostAddress(address.into()))?
-                .parse()
-                .map_err(|x| Error::ParseHostAddress(format!("{}", x)))?;
-            address_map.push(SocketAddrV4::new(address_ip, port));
-            println!(
-                "key_path:{},java_path:{},hadoop_path:{}",
-                key_path, java_home, hadoop_home
-            );
+        if let Some(slaves) = &hosts::Hosts::get()?.slaves {
+            //对每个slave进行配置
+            for slave in slaves {
+                let address = &slave.ip;
+                let key_path = match &slave.key {
+                    Some(key) => &key,
+                    None => "~/.ssh/id_rsa",
+                };
+                log::info!("key_path:{}", key_path);
+                log::debug!("deploying executor at address {:?}", address);
+                let address_ip: Ipv4Addr = address
+                    .split('@')
+                    .nth(1)
+                    .ok_or_else(|| Error::ParseHostAddress(address.into()))?
+                    .parse()
+                    .map_err(|x| Error::ParseHostAddress(format!("{}", x)))?;
+                address_map.push(SocketAddrV4::new(address_ip, port));
 
-            let work_dir = format!(
-                "{}{}",
-                "/home/",
-                slave.ip.as_str().split('@').nth(0).unwrap()
-            );
-            //配置hdfs参数
-            Command::new("ssh")
-                .args(&[
-                    "-i",
-                    key_path,
-                    address,
-                    "export",
-                    format!("JAVA_HOME={}", java_home).as_str(),
-                ])
-                .output()
-                .map_err(|e| Error::CommandOutput {
-                    source: e,
-                    command: "ssh export".into(),
-                })?;
+                let work_dir = format!(
+                    "{}{}",
+                    "/home/",
+                    slave.ip.as_str().split('@').nth(0).unwrap()
+                );
+                //配置java_home
+                match &slave.java_home {
+                    Some(java_home) => {
+                        Command::new("ssh")
+                            .args(&[
+                                "-i",
+                                key_path,
+                                address,
+                                "export",
+                                format!("JAVA_HOME={}", java_home).as_str(),
+                            ])
+                            .output()
+                            .map_err(|e| Error::CommandOutput {
+                                source: e,
+                                command: "ssh export".into(),
+                            })?;
+                        log::info!("java_path:{}", java_home);
+                    }
+                    None => {}
+                };
+                //配置hadoop_home
+                match &slave.hadoop_home {
+                    Some(hadoop_home) => {
+                        Command::new("ssh")
+                            .args(&[
+                                "-i",
+                                key_path,
+                                address,
+                                "export",
+                                format!("HADOOP_HOME={}", hadoop_home).as_str(),
+                            ])
+                            .output()
+                            .map_err(|e| Error::CommandOutput {
+                                source: e,
+                                command: "ssh export".into(),
+                            })?;
+                        log::info!("hadoop_path:{}", hadoop_home);
+                    }
+                    None => {}
+                };
 
-            Command::new("ssh")
-                .args(&[
-                    "-i",
-                    key_path,
-                    address,
-                    "export",
-                    format!("HADOOP_HOME={}", hadoop_home).as_str(),
-                ])
-                .output()
-                .map_err(|e| Error::CommandOutput {
-                    source: e,
-                    command: "ssh export".into(),
-                })?;
+                Command::new("ssh")
+                    .args(&["-i", key_path, address, "mkdir", &job_work_dir_str])
+                    .output()
+                    .map_err(|e| Error::CommandOutput {
+                        source: e,
+                        command: "ssh mkdir".into(),
+                    })?;
 
-            Command::new("ssh")
-                .args(&["-i", key_path, address, "mkdir", &job_work_dir_str])
-                .output()
-                .map_err(|e| Error::CommandOutput {
-                    source: e,
-                    command: "ssh mkdir".into(),
-                })?;
+                // Copy conf file to remote:
+                //创建worker_config(config.toml)
+                Context::create_workers_config_file(address_ip, port, conf_path)?;
+                let remote_path = format!("{}:{}/config.toml", address, job_work_dir_str);
+                Command::new("scp")
+                    .args(&["-i", key_path, conf_path, &remote_path])
+                    .output()
+                    .map_err(|e| Error::CommandOutput {
+                        source: e,
+                        command: "scp config".into(),
+                    })?;
 
-            // Copy conf file to remote:
-            //创建worker_config(config.toml)
-            Context::create_workers_config_file(address_ip, port, conf_path)?;
-            let remote_path = format!("{}:{}/config.toml", address, job_work_dir_str);
-            Command::new("scp")
-                .args(&["-i", key_path, conf_path, &remote_path])
-                .output()
-                .map_err(|e| Error::CommandOutput {
-                    source: e,
-                    command: "scp config".into(),
-                })?;
+                // Copy binary:
+                //赋值二进制文件到slave中
+                let remote_path = format!("{}:{}/{}", address, job_work_dir_str, binary_name);
+                log::debug!("{}", binary_path_str);
+                log::debug!("{}", remote_path);
+                Command::new("scp")
+                    .args(&["-i", key_path, &binary_path_str, &remote_path])
+                    .output()
+                    .map_err(|e| Error::CommandOutput {
+                        source: e,
+                        command: "scp executor".into(),
+                    })?;
 
-            // Copy binary:
-            //赋值二进制文件到slave中
-            let remote_path = format!("{}:{}/{}", address, job_work_dir_str, binary_name);
-            // println!("{}", binary_path_str);
-            // println!("{}", remote_path);
-            Command::new("scp")
-                .args(&["-i", key_path, &binary_path_str, &remote_path])
-                .output()
-                .map_err(|e| Error::CommandOutput {
-                    source: e,
-                    command: "scp executor".into(),
-                })?;
+                // Copy hosts.conf:
+                // 赋值hosts.conf到slave/~/中(强制覆盖)
+                let hosts_path = std::env::home_dir()
+                    .ok_or(Error::NoHome)?
+                    .join("hosts.conf");
+                let hosts_path_str = hosts_path.to_str().unwrap();
+                let remote_hosts_path = format!("{}:{}/hosts.conf", address, work_dir);
+                println!("{}", hosts_path_str);
+                println!("{}", remote_hosts_path);
+                Command::new("scp")
+                    .args(&["-f", "-i", key_path, &hosts_path_str, &remote_hosts_path])
+                    .output()
+                    .map_err(|e| Error::CommandOutput {
+                        source: e,
+                        command: "scp executor".into(),
+                    })?;
 
-            // Copy hosts.conf:
-            // 赋值hosts.conf到slave/~/中(强制覆盖)
-            let hosts_path = std::env::home_dir()
-                .ok_or(Error::NoHome)?
-                .join("hosts.conf");
-            let hosts_path_str = hosts_path.to_str().unwrap();
-            let remote_hosts_path = format!("{}:{}/hosts.conf", address, work_dir);
-            println!("{}", hosts_path_str);
-            println!("{}", remote_hosts_path);
-            Command::new("scp")
-                .args(&["-f", "-i", key_path, &hosts_path_str, &remote_hosts_path])
-                .output()
-                .map_err(|e| Error::CommandOutput {
-                    source: e,
-                    command: "scp executor".into(),
-                })?;
+                // Deploy a remote slave:
+                //通过ssh控制slave，run程序
+                let path = format!("{}/{}", job_work_dir_str, binary_name);
+                log::debug!("remote path {}", path);
+                Command::new("ssh")
+                    .args(&["-i", key_path, address, &path])
+                    .spawn()
+                    .map_err(|e| Error::CommandOutput {
+                        source: e,
+                        command: "ssh run".into(),
+                    })?;
+                port += 5000;
+            }
+        } else {
+            return Err(Error::NoSlaves);
+        };
 
-            // Deploy a remote slave:
-            //通过ssh控制slave，run程序
-            let path = format!("{}/{}", job_work_dir_str, binary_name);
-            log::debug!("remote path {}", path);
-            Command::new("ssh")
-                .args(&["-i", key_path, address, &path])
-                .spawn()
-                .map_err(|e| Error::CommandOutput {
-                    source: e,
-                    command: "ssh run".into(),
-                })?;
-            port += 5000;
-        }
         //此处scheduler采用ditributed模式，特别的参数是port=10000//WHY TOBE DONE
         Ok(Arc::new(Context {
             next_rdd_id: Arc::new(AtomicUsize::new(0)),

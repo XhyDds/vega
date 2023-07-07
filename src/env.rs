@@ -79,7 +79,7 @@ impl Env {
             let master_addr = Hosts::get()
                 .expect("fatal error: failed loading host file")
                 .master;
-            println!("master:{:?}", master_addr);
+            log::info!("master:{:?}", master_addr);
             //conf.is_driver: master/slaves
             let map_output_tracker = MapOutputTracker::new(conf.is_driver, master_addr);
             let shuffle_manager =
@@ -308,21 +308,6 @@ impl Configuration {
                     .flatten();
             }
         }
-        // if let Some(parent_path) = binary_path.parent() {
-        //     //配置文件
-        //     if let Some(pparent_path) = parent_path.parent() {
-        //         if let Some(dir) = pparent_path.parent() {
-        //             let conf_file = dir.join("config_files/config.toml");
-        //             println!("{}", conf_file.display());
-        //             if conf_file.exists() {
-        //                 return fs::read_to_string(conf_file)
-        //                     .map(|content| toml::from_str::<Configuration>(&content).ok())
-        //                     .ok()
-        //                     .flatten();
-        //             }
-        //         }
-        //     }
-        // }
         None
     }
 }
