@@ -30,8 +30,6 @@ pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>)
     let res = coordinate_iter.fold(0, Fn!(|acc, i| acc + i)).unwrap();
     println!("result: {:?}", (res as f64) * 4.0 / (param as f64));
 
-    // benchmark::pi::calc_pi(sc,Some(1000000),Some(2));
     let end = start.elapsed();
-    println!("in fn {:?}", end);
-    // println!("result: {:?}", res);
+    println!("Cal_pi_time_cost: {:?}", end);
 }

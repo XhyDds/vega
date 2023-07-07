@@ -54,7 +54,7 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
         let input_key_pair = input_ref_rdd.zip(Arc::new(k_weights_param.clone()));
         let dot_fn = Fn!(|q_k: (Arc<Vec<f64>>, Vec<f64>)| {
             let mut sum = 0.0f64;
-            for i in 0..1 {
+            for i in 0..INPUT_SIZE {
                 sum += q_k.0[i] * q_k.1[i];
             }
             sum
@@ -82,6 +82,5 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
     }
 
     let end = start.elapsed();
-    println!("multihead_attention_time_cost: {:?}", end);
-    // println!("result: {:?}", res);
+    println!("Multihead_attention_time_cost: {:?}", end);
 }
