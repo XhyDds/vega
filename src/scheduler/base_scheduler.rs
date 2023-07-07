@@ -381,7 +381,7 @@ pub(crate) trait NativeScheduler: Send + Sync {
                 }
             }
         }
-        log::debug!("task_id:{},result:{:?}", task_id, results);
+        
         Ok(())
     }
 
