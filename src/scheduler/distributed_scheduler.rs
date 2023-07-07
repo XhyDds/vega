@@ -508,7 +508,7 @@ impl NativeScheduler for DistributedScheduler {
                         // 五次后不再尝试发送，将任务标记为failed，等待发送给其他executor
                         if num_retries > 5 {
                             //重新发送
-                            log::error!("{} connection failed:\n", task.get_task_id());
+                            log::error!("executor @{} can not response", target_executor.port());
                             let new_executor = socket_addrs.lock().pop_back().unwrap();
                             socket_addrs.lock().push_front(new_executor);
                             log::error!(
@@ -526,7 +526,7 @@ impl NativeScheduler for DistributedScheduler {
                                 event_queues,
                             )
                             .await;
-                            panic!("executor @{} can not response", target_executor.port());
+                            break;
                         }
                         tokio::time::delay_for(Duration::from_millis(200)).await;
                         num_retries += 1;
