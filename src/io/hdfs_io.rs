@@ -18,18 +18,6 @@ impl HdfsIO {
                 return Err(Error::HdfsNamenode);
             }
         };
-        match std::env::var("java_home") {
-            Ok(_) => {},
-            Err(_) => {
-                return Err(Error::JavaHome);
-            }
-        };
-        match std::env::var("hadoop_home") {
-            Ok(_) => {},
-            Err(_) => {
-                return Err(Error::HadoopHome);
-            }
-        };
         let nn = nn + ":9000";
         let fs = Client::connect(nn.as_str());
         let fs = match fs {

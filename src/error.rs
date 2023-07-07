@@ -96,12 +96,6 @@ pub enum Error {
     #[error("cannot get namenode")]
     HdfsNamenode,
 
-    #[error("JAVA_HOME not set")]
-    JavaHome,
-
-    #[error("HADOOP_HOME not set")]
-    HadoopHome,
-
     #[error("failed to connect to hdfs namenode: {0}")]
     HdfsConnect(String),
 
