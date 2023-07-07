@@ -1,0 +1,455 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title></title>
+        <meta name="robots" content="noindex" />
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Help_Docs_Local</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Help_Docs_Distributed</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">4.</strong> Monitoring</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p><code>vega</code> is a distributed computing framework inspired by Apache Spark.</p>
+<h2 id="getting-started"><a class="header" href="#getting-started">Getting started</a></h2>
+<h3 id="setting-up-rust"><a class="header" href="#setting-up-rust">Setting up Rust</a></h3>
+<p>Vega requires Rust Nightly channel because it depends on libraries that require Nightly (<code>serde_traitobject</code> -&gt; <code>metatype</code>).
+Ensure that you have and are using a Nightly toolchain when
+building examples.</p>
+<pre><code class="language-doc">$ rustup toolchain install nightly
+</code></pre>
+<p>Then set the default, or pass the toolchain in when invoking Cargo:</p>
+<pre><code class="language-doc">$ rustup default nightly
+</code></pre>
+<h3 id="installing-vega"><a class="header" href="#installing-vega">Installing Vega</a></h3>
+<p>Right now, the framework lacks any sort of cluster manager of submit program/script.</p>
+<p>In order to use the framework, you have to clone the repository and add the local dependency or add the upstream GitHub repository to your Rust project (the crate is not yet published on <a href="https://crates.io/">crates.io</a>). E.g. add to your application Cargo.toml or:</p>
+<pre><code class="language-doc">[dependencies]
+vega = { path = &quot;/path/to/local/git/repo&quot; }
+# or
+vega = { git = &quot;https://github.com/rajasekarv/vega&quot;, branch = &quot;master }
+</code></pre>
+<p>It is <em>not recommended</em> to use the application for any sort of production code yet as it's under heavy development.</p>
+<p>Check <a href="https://github.com/rajasekarv/vega/tree/master/examples">examples</a> and <a href="https://github.com/rajasekarv/vega/tree/master/tests">tests</a> in the source code to get a basic idea of how the framework works.</p>
+<h2 id="executing-an-application"><a class="header" href="#executing-an-application">Executing an application</a></h2>
+<p>In order to execute application code some preliminary setup is required. (So far only tested on Linux.)</p>
+<ul>
+<li>Install <a href="https://capnproto.org/install.html">Cap'n Proto</a>. Required for serialization/deserialziation and IPC between executors.</li>
+<li>If you want to execute examples, tests or contribute to development, clone the repository <code>git clone https://github.com/rajasekarv/vega/</code>, if you want to use the library in your own application you can just add the depency as indicated in the installation paragraph.</li>
+<li>You need to have <a href="https://github.com/rajasekarv/vega/blob/master/config_files/hosts.conf">hosts.conf</a> in the format present inside config folder in the home directory of the user deploying executors in any of the machines.
+<ul>
+<li>In <code>local</code> mode this means in your current user home, e.g.:</li>
+</ul>
+<blockquote>
+<p>$ cp vega/config_files/hosts.conf $HOME</p>
+</blockquote>
+<ul>
+<li>In <code>distributed</code> mode the same file is required in each host that may be deploying executors (the ones indicated in the <code>hosts.conf</code> file) and the master. E.g.:</li>
+</ul>
+<pre><code class="language-doc">$ ssh remote_user@172.0.0.10 # this machine IP is in hosts.conf
+# create the same hosts.conf file in every machine:
+$ cd ~ &amp;&amp; vim hosts.conf ...
+</code></pre>
+</li>
+<li>The environment variable <code>VEGA_LOCAL_IP</code> must be set for the user executing application code.
+<ul>
+<li>In <code>local</code> it suffices to set up for the current user:</li>
+</ul>
+<blockquote>
+<p>$ export VEGA_LOCAL_IP=0.0.0.0</p>
+</blockquote>
+<ul>
+<li>In <code>distributed</code> the variable is required, aditionally, to be set up for the users remotely connecting. Depending on the O.S. and ssh defaults this may require some additional configuration. E.g.:</li>
+</ul>
+<pre><code class="language-doc">$ ssh remote_user@172.0.0.10
+$ sudo echo &quot;VEGA_LOCAL_IP=172.0.0.10&quot; &gt;&gt; .ssh/environment
+$ sudo echo &quot;PermitUserEnvironment yes&quot; &gt;&gt; /etc/ssh/sshd_config
+$ service ssh restart 
+</code></pre>
+</li>
+</ul>
+<p>Now you are ready to execute your application code; if you want to try the provided 
+examples just run them. In <code>local</code>:</p>
+<blockquote>
+<p>cargo run --example make_rdd</p>
+</blockquote>
+<p>In <code>distributed</code>:</p>
+<blockquote>
+<p>export VEGA_DEPLOYMENT_MODE=distributed</p>
+<p>cargo run --example make_rdd</p>
+</blockquote>
+<h2 id="deploying-with-docker"><a class="header" href="#deploying-with-docker">Deploying with Docker</a></h2>
+<p>There is a docker image and docker-compose script in order to ease up trying testing 
+and deploying distributed mode on your local host. In order to use them:</p>
+<ol>
+<li>Build the examples image under the repository <code>docker</code> directory:</li>
+</ol>
+<blockquote>
+<p>bash docker/build_image.sh</p>
+</blockquote>
+<ol start="2">
+<li>When done, you can deploy a testing cluster:</li>
+</ol>
+<blockquote>
+<p>bash testing_cluster.sh</p>
+</blockquote>
+<p>This will execute all the necessary steeps to to deploy a working network of containers where you can execute the tests. When finished you can attach a shell to the master and run the examples:</p>
+<pre><code class="language-doc">$ docker exec -it docker_vega_master_1 bash
+$ ./make_rdd
+</code></pre>
+<h2 id="setting-execution-mode"><a class="header" href="#setting-execution-mode">Setting execution mode</a></h2>
+<p>In your application you can set the execution mode (<code>local</code> or <code>distributed</code>) in one of the following ways:</p>
+<ol>
+<li>Set it explicitly while creating the context, e.g.:</li>
+</ol>
+<pre><code class="language-doc">    use vega::DeploymentMode;
+
+    let context = Context::with_mode(DeploymentMode::Local)?;
+</code></pre>
+<ol start="2">
+<li>Set the DEPLOYMENT_MODE environment variable (e.g.: <code>DEPLOYMENT_MODE=local</code>).</li>
+</ol>
+<h3 id="additional-notes"><a class="header" href="#additional-notes">Additional notes</a></h3>
+<ul>
+<li>Depending on the source you intend to use you may have to write your own source reading rdd (like manually reading from S3) if it's not yet available.</li>
+<li>Ctrl-C and panic handling are not compeltely done yet, so if there is a problem during runtime, executors won't shut down automatically and you will have to manually kill the processes.</li>
+<li>One of the limitations of current implementation is that the input and return types of all closures and all input to make_rdd should be owned data.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="单机部署指南"><a class="header" href="#单机部署指南">单机部署指南</a></h2>
+<p>以下为我个人编译vega时的经验，不保证成功。如有问题，请在群中详细询问或自己解决。(为本机运行，多机运行需要修改hosts.conf等，暂不考虑)</p>
+<ol>
+<li>推荐使用linux系统运行（windows系统可以尝试，但可能在部分环节略有不同，需要自己摸索）</li>
+<li>从该仓库抓取修改过后的版本，原代码中的问题应该已经解决了。</li>
+<li>关于rust的版本，请选择 rust nightly ，具体版本请参考这里：
+<img src="./imgs/1.png">
+<img src="./imgs/2.png">
+推荐rustup default stable（日常开发用稳定版），在vega目录下<code>rustup override set nightly</code>重载为nightly格式。</li>
+<li>如果出现<code>error: failed to run custom build command for </code>openssl-sys v0.9.52`错误，请按照提示下载openssl即可：</li>
+</ol>
+<pre><code class="language-doc">    # On Ubuntu
+    sudo apt-get install libssl-dev
+    # On Arch Linux
+    sudo pacman -S openssl
+    # On Fedora
+    sudo dnf install openssl-devel
+</code></pre>
+<p>如果下载后仍有此错误，解决方法未知。</p>
+<ol start="5">
+<li>在家目录下(<code>echo $HOME</code>)，创建hosts.conf文件，内容同<a href="../../config_files/hosts.conf">config</a></li>
+<li>需要安装capnpc（根据错误提示安装(似乎需要sudo apt-get install)）</li>
+<li>通过<code>cargo run</code>（main.rs文件已添加，为make_rdd.rs内容）或<code>cargo run --example make_rdd</code>(测试文件在&quot;../../examples&quot;文件夹中，这里以make_rdd.rs示例)</li>
+</ol>
+<p><strong>欢迎提出问题与补充</strong></p>
+<h2 id="条件编译使用"><a class="header" href="#条件编译使用">条件编译使用</a></h2>
+<p>在Cargo.toml</p>
+<pre><code>[features]
+default=[&quot;hdrs_valid&quot;]
+hdrs_valid=[]
+# aws_connectors = [&quot;rusoto_core&quot;, &quot;rusoto_s3&quot;]
+</code></pre>
+<p>在default前加'#'表示注释，使得条件编译生效，忽略hdrs的编译.
+去除'#'表示有hdrs_valid可用，条件编译会使得hdrs相关的模块正常编译.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="多机部署指南"><a class="header" href="#多机部署指南">多机部署指南</a></h1>
+<h3 id="vlab多机内网互联"><a class="header" href="#vlab多机内网互联">vlab多机内网互联</a></h3>
+<p><strong>环境</strong>
+vlab平台上提供的linux虚拟机。
+示例中使用两台机器：VM6097与VM6854。内网ip地址分别为：172.31.240.88与172.31.138.136。</p>
+<p><strong>hosts.conf文件</strong>
+在各台主机上均需要有相同的hosts.conf文件，且均放置于家目录下。
+文件格式如下：</p>
+<pre><code>master = &quot;master的ip : 任意的可用端口&quot;
+[[slaves]]
+ip = &quot;期望登录的slave1的账户 @ slave1 的ip&quot;
+key = &quot;slave1 对应的ssh私钥&quot;
+[[slaves]]
+ip = &quot;期望登录的slave2的账户 @ slave2 的ip&quot;
+key = &quot;slave2 对应的ssh私钥&quot;
+......
+</code></pre>
+<p>注意：master处不能填写&quot;127.0.0.0&quot;等自机ip，需要填写slave能够连接到的master的内网ip。
+在我们的例子中，VM6097作为master，VM6854作为slave。hosts.conf文件如<a href="../../config_files/hosts.conf">hosts.conf</a>所示。</p>
+<p><strong>ssh设置</strong>
+在master下运行命令<code>ssh-keygen</code>（注意：询问“Enter file in which to save the key”时，输入期望的地址及合适的密钥名）将该密钥对中的私钥的地址同步到hosts.conf文件中。将公钥复值到期望连接的slave的目录&quot;<del>/.ssh/&quot;下，并将公钥中的内容复制添加到文件&quot;</del>/.ssh/authorized_keys&quot;中（如果没有该文件，则新建文件）。
+下面进行权限的设置：
+在master的&quot;~/.ssh/&quot;目录下运行命令：</p>
+<pre><code>&gt; chmod 600 私钥名
+//（示例中为chmod 600 brc_rsa）
+&gt; chmod 700 ~/.ssh
+</code></pre>
+<p>在slave的&quot;~/.shh/&quot;目录下运行命令：</p>
+<pre><code>&gt; chmod 600 authorized_keys
+&gt; chmod 700 ~/.ssh
+</code></pre>
+<p>至此ssh已经配置成功，可以通过命令&quot;ssh -i 密钥地址 目标ip&quot;来测试ssh是否正常工作。</p>
+<p>注意：每个密钥对只能用于一个slave，即对每个slave都需要进行上面的整个配置流程。</p>
+<p><strong>TCP测试</strong>（一般情况下可跳过）
+两台机器可以通过以下方式测试TCP连接是否正常：
+slave上运行：</p>
+<pre><code>&gt; nc -l 端口
+//（如10000，要求端口可用，即大于1024并且未被占用）
+</code></pre>
+<p>正常情况下，slave会进入监听对应端口的状态中。
+接着，master上运行：</p>
+<pre><code>&gt; nc slave的ip地址 对应的端口
+</code></pre>
+<p>正常情况下，进入可发送信息的状态。如果发送的信息可以在slave上收到并显示，则没有问题。</p>
+<p>如果出现了问题，则需要检查两台机器的TCP连接设置等。下面为可供参考的设置为防火墙设置：
+在slave下执行</p>
+<pre><code>&gt; iptables -A INPUT -s master的ip -j ACCEPT
+&gt; iptables -L -n
+//以上指令可能需要添加sudo给予权限
+</code></pre>
+<p>参考的输出为：
+<img src="../src/imgs/firewall.png"></p>
+<p><strong>TimeOut设置</strong>（一般情况下可跳过）
+可以在代码文件<a href="../../src/scheduler/distributed_scheduler.rs">TimeOutConfig</a>中，搜索&quot;executor @{} not initialized&quot;，或在大约440行处，通过配置代码<code>tokio::time::delay_for(Duration::from_millis(TimeOut)).await;</code>中的TimeOut参数（单位为ms），来控制组网时对网络延迟的容忍度。当某slave超过5次在TimeOut ms内没有传回消息，master即认为该slave已下线。请根据网络情况与容忍程度合理配置该参数，参数过低可能会导致运行出现故障。
+这里处于测试目的与网络状况，选择了200ms。</p>
+<p><strong>运行</strong>
+slaves保持开机状态，在master中，设置环境变量DEPLOYMENT_MODE后运行程序。示例的命令如下：</p>
+<pre><code>//在工作目录下
+&gt; export VEGA_DEPLOYMENT_MODE=distributed
+&gt; cargo run
+</code></pre>
+<p>即可在分布式模式下运行，对于我们的例子（以make_rdd.rs为测试文件），结果如下：
+<img src="./imgs/finish.png"></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="加入性能监控的方式"><a class="header" href="#加入性能监控的方式">加入性能监控的方式</a></h1>
+<h2 id="docker"><a class="header" href="#docker">docker</a></h2>
+<p>直接在docker/文件夹下使用命令</p>
+<pre><code class="language-bash">docker compose up -d
+</code></pre>
+<p>后在http://localhost:3000 打开grafana页面，使用用户名admin密码admin登录，即可在dashboards下查看到对应的监控面板。</p>
+<h2 id="远程手动"><a class="header" href="#远程手动">远程手动</a></h2>
+<p>在远程服务器上执行以下命令</p>
+<pre><code class="language-bash">cd ~
+wget https://github.com/prometheus/node_exporter/releases/download/v1.6.0/node_exporter-1.6.0.linux-amd64.tar.gz
+tar -xzvf node_exporter-1.6.0.linux-amd64.tar.gz
+cd node_exporter-1.6.0.linux-amd64
+./node_exporter &amp;
+</code></pre>
+<p>在本地下载prometheus和grafana或直接使用docker</p>
+<p>下载命令如下</p>
+<pre><code class="language-bash">cd ~
+wget https://dl.grafana.com/enterprise/release/grafana-enterprise-9.5.2.linux-amd64.tar.gz
+tar -xzvf grafana-enterprise-9.5.2.linux-amd64.tar.gz
+wget https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz
+tar -xzvf prometheus-2.45.0.linux-amd64.tar.gz
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
