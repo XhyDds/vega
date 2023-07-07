@@ -2,13 +2,13 @@ use reqwest::header::HeaderMap;
 use serde_json::Value;
 use std::collections::HashMap;
 
-pub async fn post(stage: String) -> Result<HashMap<String, Value>, reqwest::Error> {
+pub async fn post(signal: String) -> Result<HashMap<String, Value>, reqwest::Error> {
     let client = reqwest::Client::new();
 
     let mut headers = HeaderMap::new();
     headers.insert("Content-Type", "application/json".parse().unwrap());
     let mut data = HashMap::new();
-    data.insert("stage", stage);
+    data.insert("signal", signal);
 
     Ok(client
         .post("http://localhost:8000/interface")

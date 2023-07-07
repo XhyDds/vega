@@ -15,7 +15,7 @@ use tide::{Middleware, Next, Request, Result};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct PostMessage {
-    stage: String,
+    signal: String,
 }
 
 pub async fn add_metric(sc: Arc<Context>) -> std::result::Result<(), std::io::Error> {
@@ -23,7 +23,7 @@ pub async fn add_metric(sc: Arc<Context>) -> std::result::Result<(), std::io::Er
     let http_requests_total = Family::<Labels, Counter>::default();
     let node_num: Counter = Counter::default();
     let vega_seconds: Counter = Counter::default();
-    let vega_stage = Family::<StageSet, Gauge>::default();
+    let vega_content = Family::<ContentSet, Gauge>::default();
 
     registry.register(
         "http_requests",
@@ -36,7 +36,11 @@ pub async fn add_metric(sc: Arc<Context>) -> std::result::Result<(), std::io::Er
         "Running seconds of vega",
         vega_seconds.clone(),
     );
-    registry.register("vega_stage", "Running stage of vega", vega_stage.clone());
+    registry.register(
+        "vega_content",
+        "Running content of vega",
+        vega_content.clone(),
+    );
 
     node_num.inc();
 
@@ -52,16 +56,14 @@ pub async fn add_metric(sc: Arc<Context>) -> std::result::Result<(), std::io::Er
         node_num.inc_by(sc.address_map.len() as u64);
     }
 
-    let stage = Stage::Preparing;
-    vega_stage.get_or_create(&StageSet { stage }).inc();
-    let stage = Stage::Running;
-    let _ = vega_stage.get_or_create(&StageSet { stage });
-    let stage = Stage::Finished;
-    let _ = vega_stage.get_or_create(&StageSet { stage });
+    let content = Content::Prepared;
+    let _ = vega_content.get_or_create(&ContentSet { content });
+    let content = Content::Finished;
+    let _ = vega_content.get_or_create(&ContentSet { content });
 
     let middleware = MetricsMiddleware {
         http_requests_total,
-        vega_stage,
+        vega_content,
     };
     let mut app = tide::with_state(State {
         registry: Arc::new(registry),
@@ -101,14 +103,13 @@ struct Labels {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelSet)]
-struct StageSet {
-    stage: Stage,
+struct ContentSet {
+    content: Content,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, EncodeLabelValue)]
-enum Stage {
-    Preparing,
-    Running,
+enum Content {
+    Prepared,
     Finished,
 }
 
@@ -127,7 +128,7 @@ struct State {
 #[derive(Default)]
 struct MetricsMiddleware {
     http_requests_total: Family<Labels, Counter>,
-    vega_stage: Family<StageSet, Gauge>,
+    vega_content: Family<ContentSet, Gauge>,
 }
 
 #[tide::utils::async_trait]
@@ -138,22 +139,16 @@ impl Middleware<State> for MetricsMiddleware {
             http_types::Method::Put => Method::Put,
             http_types::Method::Post => {
                 let post_message: PostMessage = req.body_json().await?;
-                let stage = if post_message.stage == "preparing" {
-                    Stage::Preparing
-                } else if post_message.stage == "running" {
-                    let old_stage = Stage::Preparing;
-                    self.vega_stage
-                        .get_or_create(&StageSet { stage: old_stage })
-                        .dec();
-                    Stage::Running
+                let content = if post_message.signal == "0" {
+                    Content::Prepared
+                } else if post_message.signal == "1" {
+                    Content::Finished
                 } else {
-                    let old_stage = Stage::Running;
-                    self.vega_stage
-                        .get_or_create(&StageSet { stage: old_stage })
-                        .dec();
-                    Stage::Finished
+                    panic!("error signal");
                 };
-                self.vega_stage.get_or_create(&StageSet { stage }).inc();
+                self.vega_content
+                    .get_or_create(&ContentSet { content })
+                    .inc();
                 Method::Post
             }
             _ => todo!(),
