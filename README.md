@@ -17,9 +17,10 @@ Framework tested only on Linux, requires nightly Rust. Read how to get started i
 If you are interested in contributing please jump on Gitter and check out and head to the issue tracker where you can find open issues (anything labelled `good first issue` and `help wanted` is up for grabs).
 
 ## Updating(By ThisLynx)
-作为课程大作业，本小组对该项目进行了维护，修正了部分代码，提升了容错性和运行效率，增加了与Hdfs、Prometheus、Grafana等的接口。
+As a course project, our team has maintained and improved the project by fixing some code, enhancing fault tolerance and runtime efficiency, and adding interfaces with HDFS, Prometheus, Grafana, etc.
 
-单机配置流程见文档 [help_loc](./user_guide/src/chapter_2.md).
-多机配置流程见文档 [help_dis](./user_guide/src/chapter_3.md).
-HDFS的接入流程见文档 [hdfs](./user_guide/src/chapter_4.md).
-基于prometheus和grafana的性能监视方法见文档 [monitor](./user_guide/src/chapter_5.md).
+For the configuration process on a single machine, please refer to the document [help_loc](./user_guide/src/chapter_2.md). 
+For the configuration process on multiple machines, please refer to the document [help_dis](./user_guide/src/chapter_3.md). 
+The configuration process for integrating with HDFS is detailed in the document [hdfs](./user_guide/src/chapter_4.md). 
+The performance monitoring method based on Prometheus and Grafana is described in the document [monitor](./user_guide/src/chapter_5.md).
+
