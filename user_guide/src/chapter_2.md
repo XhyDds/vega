@@ -25,6 +25,14 @@
 master = "<host_ip>:8080"
 # 请将<host_ip>替换成本机ip地址
 ```
+8. cargo run --release时报错，建议参考[https://github.com/alecmocatta/serde_traitobject/issues/35]
+运行命令行命令
+```bash
+rustup install nightly-2023-04-17
+rustup default nightly-2023-04-17
+rustup component add rust-src --toolchain nightly-2023-04-17
+rustup override set nightly-2023-04-17-x86_64-unknown-linux-gnu
+```
    
 6. 需要安装capnpc：
 ```doc
@@ -45,3 +53,5 @@ hdrs_valid=[]
 ```
 在default前加'#'表示注释，使得条件编译生效，忽略hdrs的编译.
 去除'#'表示有hdrs_valid可用，条件编译会使得hdrs相关的模块正常编译.
+
+
