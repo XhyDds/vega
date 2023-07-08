@@ -20,7 +20,7 @@ use crate::scheduler::{
 };
 use crate::serializable_traits::{AnyData, Data, SerFunc};
 use crate::shuffle::ShuffleMapTask;
-use crate::{env, Result};
+use crate::{env, monitor, Result};
 use dashmap::DashMap;
 use parking_lot::Mutex;
 
@@ -318,6 +318,9 @@ impl LocalScheduler {
     {
         let des_task: TaskOption = bincode::deserialize(&task).unwrap(); //*反序列化task花了Pi计算时间的一半
         let result = des_task.run(attempt_id);
+        tokio::spawn(async {
+            let _ = monitor::poster::post(String::from("1")).await;
+        });
         match des_task {
             TaskOption::ResultTask(tsk) => {
                 let result = match result {
@@ -397,6 +400,9 @@ impl NativeScheduler for LocalScheduler {
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
         log::debug!("inside submit task");
+        tokio::spawn(async {
+            let _ = monitor::poster::post(String::from("0")).await;
+        });
         let my_attempt_id = self.attempt_id.fetch_add(1, Ordering::SeqCst);
         let event_queues = self.event_queues.clone();
         let task = bincode::serialize(&task).unwrap();
