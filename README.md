@@ -19,8 +19,11 @@ If you are interested in contributing please jump on Gitter and check out and he
 ## Updating(By ThisLynx)
 As a course project, our team has maintained and improved the project by fixing some code, enhancing fault tolerance and runtime efficiency, and adding interfaces with HDFS, Prometheus, Grafana, etc.
 
-For the configuration process on a single machine, please refer to the document [help_loc](./user_guide/src/chapter_2.md). 
+For the configuration process on a single machine, please refer to the document [help_loc](./user_guide/src/chapter_2.md).
+
 For the configuration process on multiple machines, please refer to the document [help_dis](./user_guide/src/chapter_3.md). 
+
 The configuration process for integrating with HDFS is detailed in the document [hdfs](./user_guide/src/chapter_4.md). 
+
 The performance monitoring method based on Prometheus and Grafana is described in the document [monitor](./user_guide/src/chapter_5.md).
 
