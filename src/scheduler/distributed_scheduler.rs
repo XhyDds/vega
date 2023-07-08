@@ -332,6 +332,10 @@ impl DistributedScheduler {
             bincode::deserialize(&task_data.get_msg().unwrap()).unwrap()
         };
 
+        tokio::spawn(async {
+            let _ = monitor::poster::post(String::from("1")).await;
+        });
+
         match task {
             TaskOption::ResultTask(tsk) => {
                 let result = match result {
@@ -366,9 +370,6 @@ impl DistributedScheduler {
                 }
             }
         };
-        tokio::spawn(async {
-            let _ = monitor::poster::post(String::from("1")).await;
-        });
     }
 
     async fn task_failed<T: Data, U: Data, F>(
