@@ -402,7 +402,7 @@ impl NativeScheduler for LocalScheduler {
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
         log::debug!("inside submit task");
-        log::error!("prepared task {}", self.attempt_id.load(Ordering::SeqCst));
+        log::debug!("prepared task {}", self.attempt_id.load(Ordering::SeqCst));
         tokio::spawn(async {
             let _ = monitor::poster::post(String::from("0")).await;
         });

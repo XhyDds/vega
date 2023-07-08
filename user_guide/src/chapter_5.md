@@ -1,6 +1,12 @@
 # 加入性能监控的方式
 
-## docker
+> 当前的默认写法为在Windows平台下Docker中部署时的情况，若在别的平台可能需要不同的配置，读者可以自行查找。
+
+## 配置Prometheus
+
+若需要监测远程的节点，在`docker/monitoring/prometheus.yml`中修改`job_name: 'node'`下的`targets`值，使用`ip:port`模式，应能指向对应节点上的node_exporter的端口。同样，`job_name: 'vega'`下的`targets`值应指向vega的主节点上的8000端口(vega默认性能输出端口)。
+
+## Docker
 
 直接在docker/文件夹下使用命令
 

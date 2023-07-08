@@ -10,7 +10,8 @@ scrape_configs:
   - job_name: 'node'
     static_configs:
       - targets: ['host.docker.internal:9100']
-      - targets: ['192.168.14.118:9099']
+      - targets: ['192.168.179.131:9100']
+      - targets: ['192.168.179.132:9100']
 
 rule_files:
   - 'rules.yml'

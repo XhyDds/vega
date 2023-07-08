@@ -50,7 +50,7 @@ pub(crate) fn clean_up_work_dir(work_dir: &Path) {
     if env::Configuration::get().loggin.log_cleanup {
         // Remove created files.
         if fs::remove_dir_all(&work_dir).is_err() {
-            log::error!("failed removing tmp work dir: {}", work_dir.display());
+            // log::error!("failed removing tmp work dir: {}", work_dir.display());
         }
     } else if let Ok(dir) = fs::read_dir(work_dir) {
         //除了.log文件都删

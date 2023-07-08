@@ -16,8 +16,6 @@ async fn main() -> Result<()> {
     let end = start.elapsed();
 
     println!("{:?}", end);
-    
-    //std::thread::sleep(std::time::Duration::from_secs(10));
 
     Ok(())
 }
