@@ -450,7 +450,7 @@
                     "refId": "A"
                 }
             ],
-            "title": "Panel Title",
+            "title": "vega task",
             "type": "stat"
         },
         {
@@ -537,8 +537,8 @@
     },
     "timepicker": {},
     "timezone": "",
-    "title": "my monitoring",
+    "title": "vega monitoring",
     "uid": "a14bd052-4548-4f7f-8f18-48d2a32e30cb",
-    "version": 36,
+    "version": 42,
     "weekStart": ""
 }
