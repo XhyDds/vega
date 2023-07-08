@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: setup
-      run: rustup default nightly-2023-04-17-x86_64-unknown-linux-gnu
+      run: rustup default nightly-2023-04-17-x86_64-unknown-linux-gnu;curl -O https://capnproto.org/capnproto-c++-0.10.4.tar.gz;tar zxf capnproto-c++-0.10.4.tar.gz;cd capnproto-c++-0.10.4;./configure;make -j6 check;sudo make install;
     - name: Build
       run: rustup override set nightly-2023-04-17-x86_64-unknown-linux-gnu ; cargo build --verbose
     - name: Run tests

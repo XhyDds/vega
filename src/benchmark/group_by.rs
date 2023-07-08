@@ -6,7 +6,7 @@
 // pub fn main(){
 //     let sc = Context::new().unwrap();
 //     let mut rng = rand::thread_rng();
-    
+
 //     let mut vec = vec![(0, 0)];
 //     for _ in 0..1000000 {
 //         vec.push((rng.gen_range(0i32, 100i32), rng.gen_range(0i32, 100i32)));
@@ -20,6 +20,7 @@
 //     println!("group_by_time_cost: {:?}", end);
 // }
 
-pub fn main() -> () {
+#[allow(dead_code)]
+pub fn group() -> () {
     ()
 }

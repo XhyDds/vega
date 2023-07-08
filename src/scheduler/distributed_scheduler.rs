@@ -9,7 +9,6 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use crate::dependency::ShuffleDependencyTrait;
-use crate::env;
 use crate::error::{Error, NetworkError, Result};
 use crate::map_output_tracker::MapOutputTracker;
 use crate::partial::{ApproximateActionListener, ApproximateEvaluator, PartialResult};
@@ -23,6 +22,7 @@ use crate::scheduler::{
 use crate::serializable_traits::{AnyData, Data, SerFunc};
 use crate::serialized_data_capnp::serialized_data;
 use crate::shuffle::ShuffleMapTask;
+use crate::{env, monitor};
 use capnp::message::ReaderOptions;
 use capnp_futures::serialize as capnp_serialize;
 use dashmap::DashMap;
@@ -332,6 +332,10 @@ impl DistributedScheduler {
             bincode::deserialize(&task_data.get_msg().unwrap()).unwrap()
         };
 
+        tokio::spawn(async {
+            let _ = monitor::poster::post(String::from("1")).await;
+        });
+
         match task {
             TaskOption::ResultTask(tsk) => {
                 let result = match result {
@@ -551,6 +555,9 @@ impl NativeScheduler for DistributedScheduler {
         }
         log::debug!("inside submit task");
         log::info!("submit task {}", task.get_task_id());
+        tokio::spawn(async {
+            let _ = monitor::poster::post(String::from("0")).await;
+        });
         let event_queues_clone = self.event_queues.clone();
         let socket_addrs = self.server_uris.clone();
         tokio::spawn(async move {

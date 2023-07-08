@@ -15,9 +15,9 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
     //Fn<Fn<impl Fn(&Fn<()>, ({unknown},)) -> i32>>这种可以运行
     //Fn<Fn<&usize, impl Fn(&Fn<&usize, ()>, ({unknown},)) -> Arc<Vec<f64>>>>
     let mut rng = rand::thread_rng();
-    for i in 0..HEADS_NUM {
+    for _ in 0..HEADS_NUM {
         let mut k_weight: Vec<f64> = Vec::with_capacity(INPUT_SIZE);
-        for i in 0..INPUT_SIZE {
+        for _ in 0..INPUT_SIZE {
             k_weight.push(rng.gen_range(-1.0f64, 1.0f64) as f64)
         }
         k_weights.push(k_weight);
@@ -27,7 +27,7 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
     let v_param = sc.parallelize(v, num_slices); //获得v的参数
 
     let start = Instant::now();
-    for i in 0..1 {
+    for _ in 0..1 {
         let mut rng = rand::thread_rng();
         let mut input = Vec::with_capacity(INPUT_SIZE);
         for _ in 0..INPUT_SIZE {
@@ -59,7 +59,7 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
             }
             sum
         });
-        let mut query_res = input_key_pair.map(dot_fn).collect().unwrap();
+        let query_res = input_key_pair.map(dot_fn).collect().unwrap();
         let mut query_res = query_res as Vec<f64>;
 
         //let max_query_res = query_res.fold(0.0f64, Fn!(|acc, i| acc.max(i))).unwrap();
