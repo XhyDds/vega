@@ -18,7 +18,7 @@ pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>)
     //Fn! will make the closures serializable. It is necessary. use serde_closure version 0.1.3.
     let coordinate_iter = col.map(Fn!(|_| {
         let mut rng = rand::thread_rng();
-        let mut sum: f64 = 0;
+        let mut sum = 0.0f64;
         for _ in 0..1000000 {
             let pair = (
                 rng.gen_range(-100.0f64, 100.0f64) as f64,
@@ -33,7 +33,7 @@ pub fn calc_pi(sc: &Arc<Context>, param: Option<i32>, num_slices: Option<usize>)
         }
         sum * 4.0 / 1000000.0f64
     }));
-    let res = coordinate_iter.fold(0, Fn!(|acc, i| acc + i)).unwrap();
+    let res = coordinate_iter.fold(0.0f64, Fn!(|acc, i| acc + i)).unwrap();
     println!("result: {:?}", (res as f64) / (param as f64));
 
     let end = start.elapsed();
