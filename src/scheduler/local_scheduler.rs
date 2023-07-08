@@ -316,8 +316,10 @@ impl LocalScheduler {
     ) where
         F: SerFunc((TaskContext, Box<dyn Iterator<Item = T>>)) -> U,
     {
+        log::error!("submit task {}", attempt_id);
         let des_task: TaskOption = bincode::deserialize(&task).unwrap(); //*反序列化task花了Pi计算时间的一半
         let result = des_task.run(attempt_id);
+        log::error!("received task {} result", attempt_id);
         tokio::spawn(async {
             let _ = monitor::poster::post(String::from("1")).await;
         });
