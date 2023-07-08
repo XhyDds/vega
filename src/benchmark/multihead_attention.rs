@@ -5,7 +5,7 @@ use vega::*;
 
 #[allow(dead_code, unused_braces)]
 pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
-    const INPUT_SIZE: usize = 10000;
+    const INPUT_SIZE: usize = 100;
     const HEADS_NUM: usize = 100;
     let num_slices = num_slices.unwrap_or(2);
     let mut k_weights = Vec::new();
@@ -28,39 +28,46 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
 
     let start = Instant::now();
     for _ in 0..1 {
+        const BATCH_SIZE: usize = 100;
         let mut rng = rand::thread_rng();
-        let mut input = Vec::with_capacity(INPUT_SIZE);
-        for _ in 0..INPUT_SIZE {
-            input.push(rng.gen_range(-1.0f64, 1.0f64) as f64);
+        let inputs = Vec::new();
+        for _ in 0..BATCH_SIZE {
+            let mut input = Vec::with_capacity(INPUT_SIZE);
+            for _ in 0..(INPUT_SIZE) {
+                input.push(rng.gen_range(-1.0f64, 1.0f64) as f64);
+            }
+            inputs.push(input);
         }
         //let start = Instant::now();
         //let query = sc.parallelize(input, num_slices);
         //let query_key_pair=query.zip(Arc::new(k_weights_param));
-        let input_ref = Arc::new(input);
+        let input_ref = Arc::new(inputs);
         let mut input_ref_set = Vec::new();
         for _ in 0..HEADS_NUM {
             input_ref_set.push(input_ref.clone());
         }
         //let input_rdd = sc.parallelize(input, num_slices);
         /*let input_key_pair = input_rdd.zip(Arc::new(k_weights_param));
-        let dot_fn = Fn!(|q_k: (Vec<f64>, Vec<f64>)| {
+        let dot_fn = Fn!(|k_q: (Vec<f64>, Vec<f64>)| {
             let sum = 0.0f64;
             for i in 0..INPUT_SIZE {
-                sum += q_k.0[i] * q_k.1[i];
+                sum += k_q.0[i] * k_q.1[i];
             }
             sum
         });*/
         let input_ref_rdd = sc.parallelize(input_ref_set, num_slices);
-        let input_key_pair = input_ref_rdd.zip(Arc::new(k_weights_param.clone()));
-        let dot_fn = Fn!(|q_k: (Arc<Vec<f64>>, Vec<f64>)| {
+        let key_input_pair = k_weights_param.zip(Arc::new(input_ref_rdd));
+        let dot_fn = Fn!(|k_q: (Vec<f64>, Arc<Vec<f64>>)| {
             let mut sum = 0.0f64;
             for i in 0..INPUT_SIZE {
-                sum += q_k.0[i] * q_k.1[i];
+                sum += k_q.0[i] * k_q.1[i];
             }
             sum
         });
-        let query_res = input_key_pair.map(dot_fn).collect().unwrap();
+        let query_res = key_input_pair.map(dot_fn).collect().unwrap();
         let mut query_res = query_res as Vec<f64>;
+        //key_input_pair.for_each(dot_fn);
+        //let mut query_res = key_input_pair as Vec<f64>;
 
         //let max_query_res = query_res.fold(0.0f64, Fn!(|acc, i| acc.max(i))).unwrap();
         //let max_query_res=
@@ -75,8 +82,8 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
         //let query_res_sub = query_res.map(Fn!(|q_res| { q_res - max_query_res }));
         //let query_res_softmax = query_res_sub.map(Fn!(|q_res| { q_res.exp() }));
         let query_res_softmax = sc.parallelize(query_res, num_slices);
-        let weight_v_pair = query_res_softmax.zip(Arc::new(v_param.clone()));
-        let res_vec = weight_v_pair.map(Fn!(|w_v: (f64, f64)| { w_v.0 * w_v.1 }));
+        let v_weight_pair = v_param.zip(Arc::new(query_res_softmax));
+        let res_vec = v_weight_pair.map(Fn!(|v_w: (f64, f64)| { v_w.0 * v_w.1 }));
         let res = res_vec.fold(0.0f64, Fn!(|acc, i| acc + i)).unwrap();
         println!("result: {:?}", res);
     }
