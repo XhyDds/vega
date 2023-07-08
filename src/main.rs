@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
     benchmark::pi::calc_pi(&sc, Some(100000000), Some(2));
     // benchmark::multihead_attention::multihead_attention(&sc, Some(10000), Some(100), Some(3));
     // benchmark::e::calc_e(&sc, Some(10000), Some(3));
-    // benchmark::wordcount::wordcount(&sc,None);
+    benchmark::wordcount::wordcount();
     let end = start.elapsed();
 
     println!("{:?}", end);

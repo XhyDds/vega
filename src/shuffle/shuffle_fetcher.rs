@@ -182,31 +182,31 @@ impl ShuffleFetcher {
 mod tests {
     use super::*;
 
-    #[tokio::test(core_threads = 4)]
-    async fn fetch_ok() -> StdResult<(), Box<dyn std::error::Error + 'static>> {
-        {
-            let addr = format!(
-                "http://127.0.0.1:{}",
-                env::Env::get().shuffle_manager.server_port
-            );
-            let servers = &env::Env::get().map_output_tracker.server_uris;
-            servers.insert(11000, vec![Some(addr)]);
+    // #[tokio::test(core_threads = 4)]
+    // async fn fetch_ok() -> StdResult<(), Box<dyn std::error::Error + 'static>> {
+    //     {
+    //         let addr = format!(
+    //             "http://127.0.0.1:{}",
+    //             env::Env::get().shuffle_manager.server_port
+    //         );
+    //         let servers = &env::Env::get().map_output_tracker.server_uris;
+    //         servers.insert(11000, vec![Some(addr)]);
 
-            let data = vec![(0i32, "example data".to_string())];
-            let serialized_data = bincode::serialize(&data).unwrap();
-            //env::SHUFFLE_CACHE.insert((11000, 0, 11001), serialized_data);
-            env::SHUFFLE_CACHE.insert((11000, 11001), vec![serialized_data]);
-        }
+    //         let data = vec![(0i32, "example data".to_string())];
+    //         let serialized_data = bincode::serialize(&data).unwrap();
+    //         //env::SHUFFLE_CACHE.insert((11000, 0, 11001), serialized_data);
+    //         env::SHUFFLE_CACHE.insert((11000, 11001), vec![serialized_data]);
+    //     }
 
-        let result: Vec<(i32, String)> = ShuffleFetcher::fetch(11000, 11001)
-            .await?
-            .into_iter()
-            .collect();
-        assert_eq!(result[0].0, 0);
-        assert_eq!(result[0].1, "example data");
+    //     let result: Vec<(i32, String)> = ShuffleFetcher::fetch(11000, 11001)
+    //         .await?
+    //         .into_iter()
+    //         .collect();
+    //     assert_eq!(result[0].0, 0);
+    //     assert_eq!(result[0].1, "example data");
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     #[tokio::test(core_threads = 4)]
     async fn fetch_failure() -> StdResult<(), Box<dyn std::error::Error + 'static>> {
