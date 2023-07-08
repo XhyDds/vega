@@ -23,7 +23,7 @@ ssh私钥可以不进行设置，此时会默认使用"~/.ssh/id_rsa"为私钥�
 在我们的例子中，VM6097作为master，VM6854作为slave。hosts.conf文件如[hosts.conf](../../config_files/hosts.conf)所示。
 
 ### ssh设置
-在master下运行命令`ssh-keygen`（注意：询问“Enter file in which to save the key”时，输入期望的地址及合适的密钥名）将该密钥对中的私钥的地址同步到hosts.conf文件中。将公钥复值到期望连接的slave的目录"~/.ssh/"下，并将公钥中的内容复制添加到文件"~/.ssh/authorized_keys"中（如果没有该文件，则新建文件）。
+在master下运行命令`ssh-keygen`（注意：询问“Enter file in which to save the key”时，输入期望的地址及合适的密钥名）将该密钥对中的私钥的地址同步到hosts.conf文件中。将公钥复值到期望连接的slave的目录"\~/.ssh/"下，并将公钥中的内容复制添加到文件"\~/.ssh/authorized_keys"中（如果没有该文件，则新建文件）。
 下面进行权限的设置：
 在master的"~/.ssh/"目录下运行命令：
 ```
