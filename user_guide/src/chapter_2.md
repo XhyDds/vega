@@ -18,12 +18,16 @@
     sudo dnf install openssl-devel
 ```
 
+如果不能解决，可以参考错误提示，可能需要安装pkg-config：`sudo apt-get install pkg-config`。
+
 4. 注意，Rust运行需要完整的编译环境，安装 GCC 或 Clang，Ubuntu 系统下可以通过安装 build-essential 包完成。如果出现`error: failed to run custom build command for `ccl-sys v*`类似的错误，请检查是否安装了 GCC 或 Clang 。
 
 5. 在家目录下(`echo $HOME`)，创建hosts.conf文件，内容格式同[config](../../config_files/hosts.conf)，参考的内容为：
 ```
 master = "<host_ip>:8080"
 # 请将<host_ip>替换成本机ip地址
+# 单机运行模式下不要需要配置slave节点
+# 非hdfs模式下不需要配置namenode参数
 ```
 8. cargo run --release时报错，建议参考[https://github.com/alecmocatta/serde_traitobject/issues/35]
 运行命令行命令
