@@ -1,7 +1,9 @@
 use std::time::Instant;
 use std::{env, io::Write};
+#[cfg(test)]
 use vega::io::{HdfsIO, LocalFsIO, Decoders};
 use vega::*;
+#[cfg(test)]
 fn main() -> Result<()> {
     let start = Instant::now();
 

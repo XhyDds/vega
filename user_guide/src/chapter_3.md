@@ -1,23 +1,24 @@
 # 多机部署指南
-### vlab多机内网互联
+## vlab多机内网互联
 **环境**
 vlab平台上提供的linux虚拟机。
 示例中使用两台机器：VM6097与VM6854。内网ip地址分别为：172.31.240.88与172.31.138.136。
 
 **hosts.conf文件**
-在各台主机上均需要有相同的hosts.conf文件，且均放置于家目录下。
+在各台主机上均需要有一致的hosts.conf文件，且均放置于家目录下。
 文件格式如下：
 ```
 master = "master的ip : 任意的可用端口"
 [[slaves]]
 ip = "期望登录的slave1的账户 @ slave1 的ip"
-key = "slave1 对应的ssh私钥"
+(key = "slave1 对应的ssh私钥")
 [[slaves]]
 ip = "期望登录的slave2的账户 @ slave2 的ip"
-key = "slave2 对应的ssh私钥"
+(key = "slave2 对应的ssh私钥")
 ......
 ```
 注意：master处不能填写"127.0.0.0"等自机ip，需要填写slave能够连接到的master的内网ip。
+ssh私钥可以不进行设置，此时会默认使用"~/.ssh/id_rsa"为私钥。
 在我们的例子中，VM6097作为master，VM6854作为slave。hosts.conf文件如[hosts.conf](../../config_files/hosts.conf)所示。
 
 **ssh设置**
@@ -63,8 +64,8 @@ slave上运行：
 <img src="../src/imgs/firewall.png">
 
 **TimeOut设置**（一般情况下可跳过）
-可以在代码文件[TimeOutConfig](../../src/scheduler/distributed_scheduler.rs)中，搜索"executor @{} not initialized"，或在大约440行处，通过配置代码`tokio::time::delay_for(Duration::from_millis(TimeOut)).await;`中的TimeOut参数（单位为ms），来控制组网时对网络延迟的容忍度。当某slave超过5次在TimeOut ms内没有传回消息，master即认为该slave已下线。请根据网络情况与容忍程度合理配置该参数，参数过低可能会导致运行出现故障。
-这里处于测试目的与网络状况，选择了200ms。
+可以在代码文件[TimeOutConfig](../../src/scheduler/distributed_scheduler.rs)中，搜索"executor @{} not initialized"，或在大约440行处，通过配置代码`tokio::time::delay_for(Duration::from_millis(TimeOut)).await;`中的TimeOut参数（单位为ms），来控制组网时对网络延迟的容忍度。当某slave超过5次在TimeOut ms内没有传回消息，master即认为该slave已下线。
+这里处于测试目的与网络状况，选择了200ms。请根据性能需求、网络情况与容忍程度合理配置该参数，参数过低可能会导致运行出现故障。
 
 **运行**
 slaves保持开机状态，在master中，设置环境变量DEPLOYMENT_MODE后运行程序。示例的命令如下：
