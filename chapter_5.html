@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Help_Docs_Local</title>
+        <title>Monitoring</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_2.html" class="active"><strong aria-hidden="true">2.</strong> Help_Docs_Local</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Help_Docs_Distributed</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">4.</strong> HDFS_Adaptation</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">5.</strong> Monitoring</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Help_Docs_Local</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Help_Docs_Distributed</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">4.</strong> HDFS_Adaptation</a></li><li class="chapter-item expanded "><a href="chapter_5.html" class="active"><strong aria-hidden="true">5.</strong> Monitoring</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -166,74 +166,37 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="单机部署指南"><a class="header" href="#单机部署指南">单机部署指南</a></h2>
-<p>以下为单机部署vega的指南：</p>
-<ol>
-<li>
-<p>推荐使用linux系统运行（windows系统在部分环节可能略有不同，需要自己摸索）</p>
-</li>
-<li>
-<p>关于rust的版本，请选择 rust nightly ，具体版本请参考这里：
-<img src="./imgs/1.png">
-<img src="./imgs/2.png">
-推荐rustup default stable（日常开发用稳定版），在vega目录下<code>rustup override set nightly</code>重载为nightly格式。</p>
-</li>
-<li>
-<p>如果出现<code>error: failed to run custom build command for </code>openssl-sys v*`类似的错误，请按照提示下载openssl即可：</p>
-</li>
-</ol>
-<pre><code class="language-doc">    # On Ubuntu
-    sudo apt-get install libssl-dev
-    # On Arch Linux
-    sudo pacman -S openssl
-    # On Fedora
-    sudo dnf install openssl-devel
+                        <h1 id="加入性能监控的方式"><a class="header" href="#加入性能监控的方式">加入性能监控的方式</a></h1>
+<h2 id="docker"><a class="header" href="#docker">docker</a></h2>
+<p>直接在docker/文件夹下使用命令</p>
+<pre><code class="language-bash">docker compose up -d
 </code></pre>
-<p>如果不能解决，可以参考错误提示，可能需要安装pkg-config：<code>sudo apt-get install pkg-config</code>。</p>
-<ol start="4">
-<li>
-<p>注意，Rust运行需要完整的编译环境，安装 GCC 或 Clang，Ubuntu 系统下可以通过安装 build-essential 包完成。如果出现<code>error: failed to run custom build command for </code>ccl-sys v*`类似的错误，请检查是否安装了 GCC 或 Clang 。</p>
-</li>
-<li>
-<p>在家目录下(<code>echo $HOME</code>)，创建hosts.conf文件，内容格式同<a href="../../config_files/hosts.conf">config</a>，参考的内容为：</p>
-</li>
-</ol>
-<pre><code>master = &quot;&lt;host_ip&gt;:8080&quot;
-# 请将&lt;host_ip&gt;替换成本机ip地址
-# 单机运行模式下不要需要配置slave节点
-# 非hdfs模式下不需要配置namenode参数
+<p>后在http://localhost:3000 打开grafana页面，使用用户名admin密码admin登录，即可在dashboards下查看到对应的监控面板。</p>
+<h2 id="远程手动"><a class="header" href="#远程手动">远程手动</a></h2>
+<p>在远程服务器上执行以下命令</p>
+<pre><code class="language-bash">cd ~
+wget https://github.com/prometheus/node_exporter/releases/download/v1.6.0/node_exporter-1.6.0.linux-amd64.tar.gz
+tar -xzvf node_exporter-1.6.0.linux-amd64.tar.gz
+cd node_exporter-1.6.0.linux-amd64
+./node_exporter &amp;
 </code></pre>
-<ol start="6">
-<li>需要安装capnpc：</li>
-</ol>
-<pre><code class="language-doc">    curl -O https://capnproto.org/capnproto-c++-0.7.0.tar.gz
-    tar zxf capnproto-c++-0.7.0.tar.gz
-    cd capnproto-c++-0.7.0
+<p>在本地下载prometheus和grafana或直接使用docker</p>
+<p>下载命令如下</p>
+<pre><code class="language-bash">cd ~
+wget https://dl.grafana.com/enterprise/release/grafana-enterprise-9.5.2.linux-amd64.tar.gz
+tar -xzvf grafana-enterprise-9.5.2.linux-amd64.tar.gz
+wget https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz
+tar -xzvf prometheus-2.45.0.linux-amd64.tar.gz
 </code></pre>
-<ol start="7">
-<li>通过<code>cargo run</code>（main.rs文件已添加，为<a href="../../src/benchmark/wordcount.rs">wordcount</a>内容）。更多样例请见<a href="../../examples/">example</a>与<a href="../../src/benchmark/">benchmark</a></li>
-</ol>
-<h2 id="条件编译使用"><a class="header" href="#条件编译使用">条件编译使用</a></h2>
-<p>在Cargo.toml</p>
-<pre><code>[features]
-default=[&quot;hdrs_valid&quot;]
-hdrs_valid=[]
-# aws_connectors = [&quot;rusoto_core&quot;, &quot;rusoto_s3&quot;]
-</code></pre>
-<p>在default前加'#'表示注释，使得条件编译生效，忽略hdrs的编译.
-去除'#'表示有hdrs_valid可用，条件编译会使得hdrs相关的模块正常编译.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="chapter_1.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="chapter_4.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="chapter_3.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -241,13 +204,10 @@ hdrs_valid=[]
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="chapter_1.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="chapter_4.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="chapter_3.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
             </nav>
 
         </div>

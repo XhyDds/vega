@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Help_Docs_Local</a></li><li class="chapter-item expanded "><a href="chapter_3.html" class="active"><strong aria-hidden="true">3.</strong> Help_Docs_Distributed</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">4.</strong> Monitoring</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Help_Docs_Local</a></li><li class="chapter-item expanded "><a href="chapter_3.html" class="active"><strong aria-hidden="true">3.</strong> Help_Docs_Distributed</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">4.</strong> HDFS_Adaptation</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">5.</strong> Monitoring</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -167,26 +167,28 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="多机部署指南"><a class="header" href="#多机部署指南">多机部署指南</a></h1>
-<h3 id="vlab多机内网互联"><a class="header" href="#vlab多机内网互联">vlab多机内网互联</a></h3>
-<p><strong>环境</strong>
-vlab平台上提供的linux虚拟机。
+<h2 id="vlab多机内网互联"><a class="header" href="#vlab多机内网互联">vlab多机内网互联</a></h2>
+<h3 id="环境"><a class="header" href="#环境">环境</a></h3>
+<p>vlab平台上提供的linux虚拟机。
 示例中使用两台机器：VM6097与VM6854。内网ip地址分别为：172.31.240.88与172.31.138.136。</p>
-<p><strong>hosts.conf文件</strong>
-在各台主机上均需要有相同的hosts.conf文件，且均放置于家目录下。
+<h3 id="hostsconf文件"><a class="header" href="#hostsconf文件">hosts.conf文件</a></h3>
+<p>在各台主机上均需要有一致的hosts.conf文件，且均放置于家目录下。
 文件格式如下：</p>
 <pre><code>master = &quot;master的ip : 任意的可用端口&quot;
 [[slaves]]
 ip = &quot;期望登录的slave1的账户 @ slave1 的ip&quot;
-key = &quot;slave1 对应的ssh私钥&quot;
+(key = &quot;slave1 对应的ssh私钥&quot;)
 [[slaves]]
 ip = &quot;期望登录的slave2的账户 @ slave2 的ip&quot;
-key = &quot;slave2 对应的ssh私钥&quot;
-......
+(key = &quot;slave2 对应的ssh私钥&quot;)
+# ......
+# 非hdfs模式下不需要配置namenode参数与各节点的java_home,hadoop_home
 </code></pre>
 <p>注意：master处不能填写&quot;127.0.0.0&quot;等自机ip，需要填写slave能够连接到的master的内网ip。
+ssh私钥可以不进行设置，此时会默认使用&quot;~/.ssh/id_rsa&quot;为私钥。
 在我们的例子中，VM6097作为master，VM6854作为slave。hosts.conf文件如<a href="../../config_files/hosts.conf">hosts.conf</a>所示。</p>
-<p><strong>ssh设置</strong>
-在master下运行命令<code>ssh-keygen</code>（注意：询问“Enter file in which to save the key”时，输入期望的地址及合适的密钥名）将该密钥对中的私钥的地址同步到hosts.conf文件中。将公钥复值到期望连接的slave的目录&quot;<del>/.ssh/&quot;下，并将公钥中的内容复制添加到文件&quot;</del>/.ssh/authorized_keys&quot;中（如果没有该文件，则新建文件）。
+<h3 id="ssh设置"><a class="header" href="#ssh设置">ssh设置</a></h3>
+<p>在master下运行命令<code>ssh-keygen</code>（注意：询问“Enter file in which to save the key”时，输入期望的地址及合适的密钥名）将该密钥对中的私钥的地址同步到hosts.conf文件中。将公钥复值到期望连接的slave的目录&quot;~/.ssh/&quot;下，并将公钥中的内容复制添加到文件&quot;~/.ssh/authorized_keys&quot;中（如果没有该文件，则新建文件）。
 下面进行权限的设置：
 在master的&quot;~/.ssh/&quot;目录下运行命令：</p>
 <pre><code>&gt; chmod 600 私钥名
@@ -199,8 +201,8 @@ key = &quot;slave2 对应的ssh私钥&quot;
 </code></pre>
 <p>至此ssh已经配置成功，可以通过命令&quot;ssh -i 密钥地址 目标ip&quot;来测试ssh是否正常工作。</p>
 <p>注意：每个密钥对只能用于一个slave，即对每个slave都需要进行上面的整个配置流程。</p>
-<p><strong>TCP测试</strong>（一般情况下可跳过）
-两台机器可以通过以下方式测试TCP连接是否正常：
+<h3 id="tcp测试一般情况下可跳过"><a class="header" href="#tcp测试一般情况下可跳过">TCP测试（一般情况下可跳过）</a></h3>
+<p>两台机器可以通过以下方式测试TCP连接是否正常：
 slave上运行：</p>
 <pre><code>&gt; nc -l 端口
 //（如10000，要求端口可用，即大于1024并且未被占用）
@@ -218,11 +220,11 @@ slave上运行：</p>
 </code></pre>
 <p>参考的输出为：
 <img src="../src/imgs/firewall.png"></p>
-<p><strong>TimeOut设置</strong>（一般情况下可跳过）
-可以在代码文件<a href="../../src/scheduler/distributed_scheduler.rs">TimeOutConfig</a>中，搜索&quot;executor @{} not initialized&quot;，或在大约440行处，通过配置代码<code>tokio::time::delay_for(Duration::from_millis(TimeOut)).await;</code>中的TimeOut参数（单位为ms），来控制组网时对网络延迟的容忍度。当某slave超过5次在TimeOut ms内没有传回消息，master即认为该slave已下线。请根据网络情况与容忍程度合理配置该参数，参数过低可能会导致运行出现故障。
-这里处于测试目的与网络状况，选择了200ms。</p>
-<p><strong>运行</strong>
-slaves保持开机状态，在master中，设置环境变量DEPLOYMENT_MODE后运行程序。示例的命令如下：</p>
+<h3 id="timeout设置一般情况下可跳过"><a class="header" href="#timeout设置一般情况下可跳过">TimeOut设置（一般情况下可跳过）</a></h3>
+<p>可以在代码文件<a href="../../src/scheduler/distributed_scheduler.rs">TimeOutConfig</a>中，搜索&quot;executor @{} not initialized&quot;，或在大约440行处，通过配置代码<code>tokio::time::delay_for(Duration::from_millis(TimeOut)).await;</code>中的TimeOut参数（单位为ms），来控制组网时对网络延迟的容忍度。当某slave超过5次在TimeOut ms内没有传回消息，master即认为该slave已下线。
+这里处于测试目的与网络状况，选择了200ms。请根据性能需求、网络情况与容忍程度合理配置该参数，参数过低可能会导致运行出现故障。</p>
+<h3 id="运行"><a class="header" href="#运行">运行</a></h3>
+<p>slaves保持开机状态，在master中，设置环境变量DEPLOYMENT_MODE后运行程序。示例的命令如下：</p>
 <pre><code>//在工作目录下
 &gt; export VEGA_DEPLOYMENT_MODE=distributed
 &gt; cargo run
@@ -259,22 +261,6 @@ slaves保持开机状态，在master中，设置环境变量DEPLOYMENT_MODE后�
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 

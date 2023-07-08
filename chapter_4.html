@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Monitoring</title>
+        <title>HDFS_Adaptation</title>
 
 
         <!-- Custom HTML head -->
@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Help_Docs_Local</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Help_Docs_Distributed</a></li><li class="chapter-item expanded "><a href="chapter_4.html" class="active"><strong aria-hidden="true">4.</strong> Monitoring</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Help_Docs_Local</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Help_Docs_Distributed</a></li><li class="chapter-item expanded "><a href="chapter_4.html" class="active"><strong aria-hidden="true">4.</strong> HDFS_Adaptation</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">5.</strong> Monitoring</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -166,28 +166,13 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="加入性能监控的方式"><a class="header" href="#加入性能监控的方式">加入性能监控的方式</a></h1>
-<h2 id="docker"><a class="header" href="#docker">docker</a></h2>
-<p>直接在docker/文件夹下使用命令</p>
-<pre><code class="language-bash">docker compose up -d
-</code></pre>
-<p>后在http://localhost:3000 打开grafana页面，使用用户名admin密码admin登录，即可在dashboards下查看到对应的监控面板。</p>
-<h2 id="远程手动"><a class="header" href="#远程手动">远程手动</a></h2>
-<p>在远程服务器上执行以下命令</p>
-<pre><code class="language-bash">cd ~
-wget https://github.com/prometheus/node_exporter/releases/download/v1.6.0/node_exporter-1.6.0.linux-amd64.tar.gz
-tar -xzvf node_exporter-1.6.0.linux-amd64.tar.gz
-cd node_exporter-1.6.0.linux-amd64
-./node_exporter &amp;
-</code></pre>
-<p>在本地下载prometheus和grafana或直接使用docker</p>
-<p>下载命令如下</p>
-<pre><code class="language-bash">cd ~
-wget https://dl.grafana.com/enterprise/release/grafana-enterprise-9.5.2.linux-amd64.tar.gz
-tar -xzvf grafana-enterprise-9.5.2.linux-amd64.tar.gz
-wget https://github.com/prometheus/prometheus/releases/download/v2.45.0/prometheus-2.45.0.linux-amd64.tar.gz
-tar -xzvf prometheus-2.45.0.linux-amd64.tar.gz
-</code></pre>
+                        <h1 id="hdfs适配指南"><a class="header" href="#hdfs适配指南">HDFS适配指南</a></h1>
+<h2 id="hdfs的安装与环境配置"><a class="header" href="#hdfs的安装与环境配置">HDFS的安装与环境配置</a></h2>
+<h2 id="配置文件的设置"><a class="header" href="#配置文件的设置">配置文件的设置</a></h2>
+<p>如果需要使用HDFS，请在hosts.conf文件中配置namenode参数，并为每个slave节点设置对应的java_home与hadoop_home参数。
+其中，namenode代指hdfs的主节点ip(不需要添加端口)，java_home代指java的安装路径，hadoop_home代指hadoop的安装路径。
+参考文件如<a href="../../config_files/hosts.conf">hosts.conf</a>所示。</p>
+<h2 id="相关rdd的使用"><a class="header" href="#相关rdd的使用">相关RDD的使用</a></h2>
 
                     </main>
 
@@ -197,6 +182,9 @@ tar -xzvf prometheus-2.45.0.linux-amd64.tar.gz
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
+                            <a rel="next" href="chapter_5.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -208,26 +196,13 @@ tar -xzvf prometheus-2.45.0.linux-amd64.tar.gz
                         <i class="fa fa-angle-left"></i>
                     </a>
 
+                    <a rel="next" href="chapter_5.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>
 
-        <!-- Livereload script (if served using the cli tool) -->
-        <script>
-            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
-            const socket = new WebSocket(wsAddress);
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
 
 
 
