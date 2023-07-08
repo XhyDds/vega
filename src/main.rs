@@ -17,5 +17,8 @@ async fn main() -> Result<()> {
 
     println!("{:?}", end);
 
+    // sleep for 5 seconds
+    std::thread::sleep(std::time::Duration::from_secs(10));
+
     Ok(())
 }
