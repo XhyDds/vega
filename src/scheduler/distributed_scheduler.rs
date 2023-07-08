@@ -323,7 +323,7 @@ impl DistributedScheduler {
                 .ok_or_else(|| NetworkError::NoMessageReceived)
                 .unwrap();
             let task_data = message.get_root::<serialized_data::Reader>().unwrap();
-            log::info!(
+            log::error!(
                 "received task #{} result of {} bytes from executor @{}",
                 task.get_task_id(),
                 task_data.get_msg().unwrap().len(),
@@ -554,7 +554,7 @@ impl NativeScheduler for DistributedScheduler {
             return;
         }
         log::debug!("inside submit task");
-        log::info!("submit task {}", task.get_task_id());
+        log::error!("submit task {}", task.get_task_id());
         tokio::spawn(async {
             let _ = monitor::poster::post(String::from("0")).await;
         });
