@@ -10,9 +10,9 @@ fn main() -> Result<()> {
 
     let start = Instant::now();
     //benchmark::pi::calc_pi(&sc, Some(1000000), Some(3));
-    //benchmark::wordcount::wordcount();
+    benchmark::wordcount::wordcount();
     //benchmark::multihead_attention::multihead_attention(&sc, Some(3));
-    benchmark::group_by::main();
+    //benchmark::group_by::main();
     // benchmark::e::calc_e(&sc, Some(10000), Some(3));
     // benchmark::wordcount::wordcount(&sc,None);
     let end = start.elapsed();

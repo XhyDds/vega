@@ -7,7 +7,7 @@ pub fn wordcount() -> Result<()> {
 
     let context = Context::new()?;
     //let mut h = HdfsIO::new().unwrap();
-    let lines = LocalFsIO::read_to_rdd_and_decode("/home/yuri/docs/enwik8", &context, 2, Decoders::to_utf8_lines());
+    let lines = LocalFsIO::read_to_rdd_and_decode("/home/lml/enwik8.a", &context, 2, Decoders::to_utf8_lines());
     let lines = lines.flat_map(Fn!(|lines: Vec<String>| {
         Box::new(lines.into_iter().map(|line| {
             let line = line.split(' ').collect::<Vec<_>>().into_iter().map(|s| s.to_string()).collect::<Vec<_>>();
