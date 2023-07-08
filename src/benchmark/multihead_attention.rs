@@ -27,7 +27,7 @@ pub fn multihead_attention(sc: &Arc<Context>, num_slices: Option<usize>) {
     let v_param = sc.parallelize(v, num_slices); //获得v的参数
 
     let start = Instant::now();
-    for round in 0..3 {
+    for _ in 0..3 {
         //let round_start = Instant::now();
         let mut rng = rand::thread_rng();
 

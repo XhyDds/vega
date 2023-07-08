@@ -106,3 +106,18 @@ In your application you can set the execution mode (`local` or `distributed`) in
 * Depending on the source you intend to use you may have to write your own source reading rdd (like manually reading from S3) if it's not yet available.
 * Ctrl-C and panic handling are not compeltely done yet, so if there is a problem during runtime, executors won't shut down automatically and you will have to manually kill the processes.
 * One of the limitations of current implementation is that the input and return types of all closures and all input to make_rdd should be owned data.
+
+## Doc Description
+```
+|—— chapter_1.md
+|—— chapter_2.md
+|—— chapter_3.md
+|—— chapter_4.md
+|—— chapter_5.md
+└x─ SUMMARY.md
+```
+- [chapter_1](https://xhydds.github.io/vega/chapter_1.html) is the first chapter of the user guide, which introduces the basic concepts of Vega .
+- [chapter_2](https://xhydds.github.io/vega/chapter_2.html) is the second chapter of the user guide, which introduces the way to run vega in the local mode .
+- [chapter_3](https://xhydds.github.io/vega/chapter_3.html) is the third chapter of the user guide, which introduces the way to run vega in the distributed mode .
+- [chapter_4](https://xhydds.github.io/vega/chapter_4.html) is the fourth chapter of the user guide, which introduces the way to run vega with hdfs .
+- [chapter_4](https://xhydds.github.io/vega/chapter_5.html) is the fifth chapter of the user guide, which introduces the way to run monitoring for vega .

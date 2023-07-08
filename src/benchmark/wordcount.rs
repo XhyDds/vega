@@ -28,7 +28,7 @@ pub fn wordcount() -> Result<()> {
     }));
 
     let res = kv.reduce_by_key(Fn!(|(a, b)| a + b), 2).collect().unwrap();
-    println!("{:?}", res);
+    // println!("{:?}", res);
     // println!("{:?}", h.write_to_hdfs(format!("{:?}", res).as_bytes(), "/res/2.txt", true));
     //let duration = start.elapsed();
     //println!("Wordcount_time_cost: {:?}", duration);
