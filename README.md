@@ -16,7 +16,7 @@ Framework tested only on Linux, requires nightly Rust. Read how to get started i
 
 If you are interested in contributing please jump on Gitter and check out and head to the issue tracker where you can find open issues (anything labelled `good first issue` and `help wanted` is up for grabs).
 
-## Updating(By ThisLynx)
+## Updating (By ThisLynx)
 As a course project, our team has maintained and improved the project by fixing some code, enhancing fault tolerance and runtime efficiency, and adding interfaces with HDFS, Prometheus, Grafana, etc.
 
 For the configuration process on a single machine, please refer to the document [help_loc](./user_guide/src/chapter_2.md).   
