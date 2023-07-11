@@ -167,7 +167,12 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="加入性能监控的方式"><a class="header" href="#加入性能监控的方式">加入性能监控的方式</a></h1>
-<h2 id="docker"><a class="header" href="#docker">docker</a></h2>
+<blockquote>
+<p>当前的默认写法为在Windows平台下Docker中部署时的情况，若在别的平台可能需要不同的配置，读者可以自行查找。</p>
+</blockquote>
+<h2 id="配置prometheus"><a class="header" href="#配置prometheus">配置Prometheus</a></h2>
+<p>若需要监测远程的节点，在<code>docker/monitoring/prometheus.yml</code>中修改<code>job_name: 'node'</code>下的<code>targets</code>值，使用<code>ip:port</code>模式，应能指向对应节点上的node_exporter的端口。同样，<code>job_name: 'vega'</code>下的<code>targets</code>值应指向vega的主节点上的8000端口(vega默认性能输出端口)。</p>
+<h2 id="docker"><a class="header" href="#docker">Docker</a></h2>
 <p>直接在docker/文件夹下使用命令</p>
 <pre><code class="language-bash">docker compose up -d
 </code></pre>

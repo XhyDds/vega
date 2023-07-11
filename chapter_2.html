@@ -203,6 +203,15 @@
 # 单机运行模式下不要需要配置slave节点
 # 非hdfs模式下不需要配置namenode参数
 </code></pre>
+<ol start="8">
+<li>cargo run --release时报错，建议参考[https://github.com/alecmocatta/serde_traitobject/issues/35]
+运行命令行命令</li>
+</ol>
+<pre><code class="language-bash">rustup install nightly-2023-04-17
+rustup default nightly-2023-04-17
+rustup component add rust-src --toolchain nightly-2023-04-17
+rustup override set nightly-2023-04-17-x86_64-unknown-linux-gnu
+</code></pre>
 <ol start="6">
 <li>需要安装capnpc：</li>
 </ol>
